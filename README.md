@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Event Management System
+
+A comprehensive web application for streamlining event planning and management, from ticket sales to post-event analytics.
+
+## Overview
+
+The Event Management System provides end-to-end capabilities for concert and event organizers, leveraging modern web technologies to deliver a robust and scalable solution.
+
+## Technology Stack
+
+- **Frontend:** Next.js (latest version)
+- **Backend:** Next.js API Routes / Serverless Functions 
+- **Database:** Neon DB (PostgreSQL)
+- **ORM:** Drizzle ORM
+- **Caching:** Redis
+- **Hosting:** Vercel
+- **Payment:** M-PESA Integration
+
+## Key Features
+
+- User role management (Super Admin, Event Admin, Attendee)
+- Event creation and management
+- Ticket sales and inventory management 
+- M-PESA payment integration
+- Seating arrangement management
+- Real-time analytics and reporting
+- Email/SMS notifications
+- QR code ticket validation
+
+## Core Modules
+
+1. User Management
+2. Event Management  
+3. Ticket Management
+4. Payment Processing
+5. Reporting & Analytics
+6. Security
+7. Notifications
+8. Seating Management
+
+## Development Phases
+
+1. Setup and User Management
+2. Event and Ticket Management
+3. Payment Integration
+4. Reporting and Analytics
+5. Security and Optimization
+6. Seating and Notifications
+7. Deployment and Maintenance
+
+## Non-Functional Requirements
+
+- High performance and responsiveness
+- Secure data handling
+- Scalable architecture
+- User-friendly interface
+- 24/7 availability
+- Maintainable codebase
+
+## Future Roadmap
+
+- Additional payment gateway integrations
+- Mobile app development
+- Marketing and promotion tools
+- Live streaming capabilities
 
 ## Getting Started
 
-First, run the development server:
+[Coming soon - Installation and setup instructions]
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+[Coming soon - Contribution guidelines]
 
-## Learn More
+## License
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+[Coming soon - License information]
