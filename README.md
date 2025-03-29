@@ -72,7 +72,7 @@ The Event Management System provides end-to-end capabilities for concert and eve
 
 ## Contributing
 
-[Coming soon - Contribution guidelines]
+**just fork the repo and create your branch the push the feature or fix you have 
 
 ## License
 
