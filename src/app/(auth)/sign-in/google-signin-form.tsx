@@ -13,14 +13,11 @@ export default function GoogleSignInForm() {
       console.log("[CLIENT] Starting Google sign-in from client component");
       setIsPending(true);
       setHasError(false);
-      
-      // Use the client-side signIn function directly
-      // This is the recommended approach from NextAuth.js docs
+     
       await signIn("google", { 
         callbackUrl: "/" 
       });
       
-      // Note: The code below will not execute because signIn causes a redirect
       console.log("[CLIENT] Sign-in completed (unlikely to see this due to redirect)");
     } catch (error) {
       console.error("[CLIENT] Unexpected error during sign-in:", error);
