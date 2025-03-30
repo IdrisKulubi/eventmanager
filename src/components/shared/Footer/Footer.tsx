@@ -45,18 +45,14 @@ const Footer = () => {
                   About Us
                 </Link>
               </li>
+             
               <li>
-                <Link href="/careers" className="text-zinc-400 hover:text-purple-400 transition-colors">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-zinc-400 hover:text-purple-400 transition-colors">
+                <Link href="/" className="text-zinc-400 hover:text-purple-400 transition-colors">
                   Blog
                 </Link>
               </li>
               <li>
-                <Link href="/press" className="text-zinc-400 hover:text-purple-400 transition-colors">
+                <Link href="/" className="text-zinc-400 hover:text-purple-400 transition-colors">
                   Press
                 </Link>
               </li>
@@ -76,11 +72,7 @@ const Footer = () => {
                   Support
                 </Link>
               </li>
-              <li>
-                <Link href="/developers" className="text-zinc-400 hover:text-purple-400 transition-colors">
-                  Developers
-                </Link>
-              </li>
+             
               <li>
                 <Link href="/contact" className="text-zinc-400 hover:text-purple-400 transition-colors">
                   Contact Us
@@ -89,45 +81,14 @@ const Footer = () => {
             </ul>
           </div>
           
-          <div>
-            <h3 className="text-lg font-semibold text-white mb-4">Legal</h3>
-            <ul className="space-y-3">
-              <li>
-                <Link href="/terms" className="text-zinc-400 hover:text-purple-400 transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="text-zinc-400 hover:text-purple-400 transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/cookies" className="text-zinc-400 hover:text-purple-400 transition-colors">
-                  Cookie Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/licenses" className="text-zinc-400 hover:text-purple-400 transition-colors">
-                  Licenses
-                </Link>
-              </li>
-            </ul>
-          </div>
+         
         </div>
         
         <div className="border-t border-zinc-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-zinc-500 text-sm">
             © {new Date().getFullYear()} BlackConcert. All rights reserved.
           </p>
-          <div className="mt-4 md:mt-0">
-            <select className="bg-zinc-800 rounded-md border border-zinc-700 text-zinc-400 text-sm py-2 px-3 focus:ring-purple-500 focus:border-purple-500">
-              <option>English (US)</option>
-              <option>Español</option>
-              <option>Français</option>
-              <option>Deutsch</option>
-            </select>
-          </div>
+         
         </div>
       </div>
     </footer>
