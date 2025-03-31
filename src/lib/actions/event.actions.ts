@@ -1,14 +1,23 @@
 'use server';
 
-import { events, eventToCategory } from '@/db/schema';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { eq, and, inArray, gte, like, desc, asc, count } from 'drizzle-orm';
 import { z } from 'zod';
 import db from '@/db/drizzle';
 import { EventFormSchema } from '../validators';
+import { events, eventToCategory } from '@/db/schema';
 
 type EventFormData = z.infer<typeof EventFormSchema>;
+
+// Define User type with role property
+interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: 'admin' | 'manager' | 'user';
+}
 
 // Authorization check for event management
 async function checkEventManagementPermission() {
@@ -18,27 +27,26 @@ async function checkEventManagementPermission() {
   }
 
   // Only admin and manager roles can manage events
-  return session.user.role === 'admin' || session.user.role === 'manager';
+  const user = session.user as User;
+  return user.role === 'admin' || user.role === 'manager';
 }
 
 export async function getEvents({
   page = 1,
   limit = 10,
-  status,
   search,
+  status,
+  categoryId,
   sortBy = 'startDate',
   sortOrder = 'desc',
-  categoryId,
-  venueId,
 }: {
   page?: number;
   limit?: number;
-  status?: 'draft' | 'published' | 'cancelled' | 'completed';
   search?: string;
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
+  categoryId?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-  categoryId?: number;
-  venueId?: number;
 }) {
   try {
     // For public listing, no auth check needed
@@ -53,10 +61,6 @@ export async function getEvents({
     
     if (search) {
       conditions.push(like(events.title, `%${search}%`));
-    }
-    
-    if (venueId) {
-      conditions.push(eq(events.venueId, venueId));
     }
     
     // If filtering by category, need to join with eventToCategory
@@ -120,7 +124,7 @@ export async function getEventById(id: number) {
     
     return {
       ...event[0],
-      categoryIds,
+      categories: categoryIds.map(id => ({ id })),
     };
   } catch (error) {
     console.error('Error fetching event:', error);
@@ -138,10 +142,14 @@ export async function createEvent(formData: EventFormData) {
     const session = await auth();
     const { categoryIds, ...eventData } = formData;
     const user = session?.user;
+
+    // Insert event - only use fields that exist in the schema
+    // Extract only the fields that exist in the events table
+    const { imageUrl, ...validEventData } = eventData;
     
-    // Insert event
+    // Insert event with valid schema fields
     const [newEvent] = await db.insert(events).values({
-      ...eventData,
+      ...validEventData,
       createdById: user?.id,
     }).returning();
     
@@ -170,11 +178,11 @@ export async function updateEvent(id: number, formData: EventFormData) {
   }
   
   try {
-    const { categoryIds, ...eventData } = formData;
+    const { categoryIds, imageUrl, ...validEventData } = formData;
     
-    // Update event
+    // Update event - only use fields that exist in the schema
     await db.update(events)
-      .set(eventData)
+      .set(validEventData)
       .where(eq(events.id, id));
     
     // Update category relationships if provided
@@ -251,7 +259,6 @@ export async function getUpcomingEvents(limit = 6) {
       .from(events)
       .where(and(
         eq(events.status, 'published'),
-        eq(events.isPublic, true),
         gte(events.startDate, now)
       ))
       .orderBy(asc(events.startDate))
@@ -272,8 +279,6 @@ export async function getFeaturedEvents(limit = 3) {
       .from(events)
       .where(and(
         eq(events.status, 'published'),
-        eq(events.isPublic, true),
-        eq(events.isFeatured, true),
         gte(events.startDate, now)
       ))
       .orderBy(asc(events.startDate))

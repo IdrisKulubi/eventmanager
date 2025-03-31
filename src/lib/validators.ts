@@ -1,39 +1,73 @@
 import { z } from "zod";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from "@/lib/constants";
 
-// Event form schema
-export const EventFormSchema = z.object({
-  title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
+// User schemas
+export const LoginFormSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const SignUpFormSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Please enter a valid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(8, "Password must be at least 8 characters"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+// Venue schemas
+export const VenueFormSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  capacity: z.number().int().nonnegative().optional(),
   description: z.string().optional(),
-  bannerImage: z.string().optional(),
-  venueId: z.number(),
-  startDate: z.coerce.date(),
-  endDate: z.coerce.date(),
-  status: z.enum(['draft', 'published', 'cancelled', 'completed']),
+  imageUrl: z.string().optional(),
+  contactInfo: z.string().optional(),
+  coordinates: z.object({
+    lat: z.number().optional(),
+    lng: z.number().optional(),
+  }).optional(),
+});
+
+// Event schemas
+export const EventFormSchema = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters"),
+  description: z.string().optional(),
+  startDate: z.date({
+    required_error: "Start date is required",
+    invalid_type_error: "Start date must be a valid date",
+  }),
+  endDate: z.date({
+    required_error: "End date is required",
+    invalid_type_error: "End date must be a valid date",
+  }),
+  venueId: z.number().int().positive("Venue is required"),
+  categoryIds: z.array(z.number().int().positive()).optional(),
+  status: z.enum(["draft", "published", "cancelled", "completed"]),
+  imageUrl: z.string().url("Image URL must be a valid URL").optional(),
   isPublic: z.boolean().default(true),
-  ageRestriction: z.number().optional(),
-  maxTickets: z.number().optional(),
   isFeatured: z.boolean().default(false),
-  categoryIds: z.array(z.number()).optional(),
+  ageRestriction: z.number().int().nonnegative().optional(),
+  maxTickets: z.number().int().nonnegative().optional(),
+}).refine(data => {
+  if (data.endDate < data.startDate) {
+    return false;
+  }
+  return true;
+}, {
+  message: "End date must be after start date",
+  path: ["endDate"],
 });
 
 export type EventFormData = z.infer<typeof EventFormSchema>;
 
 // Venue form schema
-export const VenueFormSchema = z.object({
-    name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
-    address: z.string().optional(),
-    city: z.string().optional(),
-    capacity: z.coerce.number().optional(),
-    description: z.string().optional(),
-    imageUrl: z.string().optional(),
-    contactInfo: z.string().optional(),
-    coordinates: z.object({
-      lat: z.number().optional(),
-      lng: z.number().optional(),
-    }).optional(),
-  });
-  
-    export  type VenueFormData = z.infer<typeof VenueFormSchema>;
+export const VenueFormData = z.infer<typeof VenueFormSchema>;
 
 // Category form schema
 export const CategoryFormSchema = z.object({

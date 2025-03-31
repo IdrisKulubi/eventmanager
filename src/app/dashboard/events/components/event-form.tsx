@@ -42,7 +42,9 @@ import { CalendarIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { EventFormSchema } from "@/lib/validators";
 import { createEvent, updateEvent } from "@/lib/actions/event.actions";
-import { eventCategories, venues as venuesSchema } from "@/db/schema";
+import { venues as venuesSchema } from "@/db/schema";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUE_TYPES } from "@/lib/constants";
 
 type FormData = {
   title: string;
@@ -62,11 +64,9 @@ type FormData = {
 
 // Define types based on the schema
 type Venue = typeof venuesSchema.$inferSelect;
-type Category = typeof eventCategories.$inferSelect;
 
 interface EventFormProps {
   venues: Venue[];
-  categories: Category[];
   initialData?: {
     id: number;
     title: string;
@@ -80,7 +80,7 @@ interface EventFormProps {
   };
 }
 
-export function EventForm({ venues, categories, initialData }: EventFormProps) {
+export function EventForm({ venues, initialData }: EventFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -195,7 +195,7 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {venues.map((venue) => (
+                      {VENUE_TYPES.map((venue) => (
                         <SelectItem
                           key={venue.id}
                           value={venue.id.toString()}
@@ -206,7 +206,30 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose where your event will take place.
+                    Choose a venue for your event. Available venue types: {VENUE_TYPES.map(t => t.name).join(', ')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Poster</FormLabel>
+                  <FormControl>
+                    <ImageUploadField
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Upload Event Poster"
+                      error={form.formState.errors.imageUrl?.message}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Upload a poster image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
+                    Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -350,7 +373,7 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                         <CommandInput placeholder="Search categories..." />
                         <CommandEmpty>No category found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-auto">
-                          {categories.map((category) => {
+                          {EVENT_CATEGORIES.map((category) => {
                             const isSelected = field.value?.includes(category.id);
                             return (
                               <CommandItem
@@ -401,9 +424,11 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      {EVENT_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormDescription>

@@ -1,9 +1,8 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getAllVenues } from "@/lib/actions/venue.actions";
-import { getAllCategories } from "@/lib/actions/category.actions";
 import { getEventById } from "@/lib/actions/event.actions";
-import { EventForm } from "@/app/dashboard/events/components/event-form";
+import { getAllVenues } from "@/lib/actions/venue.actions";
+import { EventForm } from "../../components/event-form";
 import { Heading } from "@/components/ui/heading";
 import { Separator } from "@/components/ui/separator";
 
@@ -12,49 +11,31 @@ export const metadata = {
   description: "Edit an existing event",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function EditEventPage({
   params,
 }: {
   params: { id: string };
 }) {
+  // Check authorization
   const session = await auth();
   
-  // Check if user is authenticated and has required role
-  if (!session?.user || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/sign-in');
+  if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
+    redirect('/auth/login?callbackUrl=/dashboard/events');
   }
   
-  const eventId = parseInt(params.id, 10);
+  const eventId = parseInt(params.id);
   
-  if (isNaN(eventId)) {
-    redirect('/dashboard/events');
-  }
-  
-  // Fetch event, venues, and categories
-  const [event, venues, categories] = await Promise.all([
-    getEventById(eventId),
-    getAllVenues(),
-    getAllCategories(),
-  ]);
+  // Fetch event data
+  const event = await getEventById(eventId);
   
   if (!event) {
     redirect('/dashboard/events');
   }
   
-  // Transform the event object to match EventForm expected structure
-  const formattedEvent = {
-    id: event.id,
-    title: event.title,
-    description: event.description || "",
-    venueId: event.venueId || 0,
-    startDate: event.startDate,
-    endDate: event.endDate,
-    status: event.status || "draft",
-    imageUrl: event.bannerImage || undefined,
-    categories: event.categoryIds
-      .map(id => categories.find(cat => cat.id === id))
-      .filter((cat): cat is typeof categories[0] => cat !== undefined)
-  };
+  // Fetch venues for the form
+  const venues = await getAllVenues();
   
   return (
     <div className="container py-10">
@@ -67,8 +48,7 @@ export default async function EditEventPage({
       <div className="max-w-5xl mx-auto">
         <EventForm 
           venues={venues} 
-          categories={categories} 
-          initialData={formattedEvent}
+          initialData={event} 
         />
       </div>
     </div>

@@ -109,6 +109,8 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         
         <div className="mt-4 rounded-md border">
           <DataTable 
+          /* eslint-disable @typescript-eslint/no-explicit-any */
+
             columns={columns as ColumnDef<Record<string, any>, unknown>[]} 
             data={events} 
           />
