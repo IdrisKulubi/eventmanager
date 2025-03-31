@@ -90,7 +90,7 @@ export const events = pgTable("event", {
   title: text("title").notNull(),
   description: text("description"),
   bannerImage: text("banner_image"),
-  venueId: integer("venue_id").references(() => venues.id, { onDelete: "set null" }),
+  venueId: integer("venue_id"),
   startDate: timestamp("start_date", { mode: "date" }).notNull(),
   endDate: timestamp("end_date", { mode: "date" }).notNull(),
   status: eventStatusEnum("status").default("draft"),

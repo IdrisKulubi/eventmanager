@@ -6,11 +6,11 @@ import { eq, and, inArray, gte, like, desc, asc, count } from 'drizzle-orm';
 import { z } from 'zod';
 import db from '@/db/drizzle';
 import { EventFormSchema } from '../validators';
-import { events, eventToCategory } from '@/db/schema';
+import { events, eventToCategory, eventCategories } from '@/db/schema';
 
 type EventFormData = z.infer<typeof EventFormSchema>;
 
-// Define User type with role property
+//  User type with role property
 interface User {
   id: string;
   name?: string | null;
@@ -143,30 +143,64 @@ export async function createEvent(formData: EventFormData) {
     const { categoryIds, ...eventData } = formData;
     const user = session?.user;
 
-    // Insert event - only use fields that exist in the schema
-    // Extract only the fields that exist in the events table
-    const { imageUrl, ...validEventData } = eventData;
-    
-    // Insert event with valid schema fields
-    const [newEvent] = await db.insert(events).values({
-      ...validEventData,
-      createdById: user?.id,
-    }).returning();
-    
-    // Insert category relationships if provided
-    if (categoryIds && categoryIds.length > 0) {
-      const categoryRelations = categoryIds.map(categoryId => ({
-        eventId: newEvent.id,
-        categoryId,
-      }));
-      
-      await db.insert(eventToCategory).values(categoryRelations);
-    }
-    
-    revalidatePath('/dashboard/events');
-    return { success: true, eventId: newEvent.id };
+    // Start a transaction to ensure all operations succeed or fail together
+    return await db.transaction(async (tx) => {
+      try {
+        // 1. First create the event without categories
+        const [newEvent] = await tx.insert(events).values({
+          ...eventData,
+          createdById: user?.id,
+        }).returning();
+        
+        // 2. If categories are provided, validate and insert them
+        if (categoryIds && categoryIds.length > 0) {
+          // Validate that all category IDs exist before creating relationships
+          const existingCategories = await tx
+            .select({ id: eventCategories.id })
+            .from(eventCategories)
+            .where(inArray(eventCategories.id, categoryIds));
+          
+          // Get list of valid category IDs that actually exist
+          const validCategoryIds = existingCategories.map(cat => cat.id);
+          
+          // Only create relationships for valid categories
+          if (validCategoryIds.length > 0) {
+            const categoryRelations = validCategoryIds.map(categoryId => ({
+              eventId: newEvent.id,
+              categoryId,
+            }));
+            
+            await tx.insert(eventToCategory).values(categoryRelations);
+          }
+          
+          // Log warning if some categories were invalid
+          if (validCategoryIds.length !== categoryIds.length) {
+            console.warn(`Some category IDs were invalid and skipped: ${categoryIds.filter(id => !validCategoryIds.includes(id))}`);
+          }
+        }
+        
+        revalidatePath('/dashboard/events');
+        return { success: true, eventId: newEvent.id };
+      } catch (error) {
+        // Transaction will automatically roll back on error
+        console.error('Transaction error:', error);
+        throw error;
+      }
+    });
   } catch (error) {
     console.error('Error creating event:', error);
+    // Provide more specific error message based on the error type
+    if (error instanceof Error) {
+      // Handle specific error types with custom messages
+      if (error.message.includes('violates foreign key constraint')) {
+        if (error.message.includes('category_id')) {
+          throw new Error('Failed to create event: One or more selected categories do not exist');
+        } else if (error.message.includes('venue_id')) {
+          throw new Error('Failed to create event: The selected venue does not exist');
+        }
+      }
+      throw new Error(`Failed to create event: ${error.message}`);
+    }
     throw new Error('Failed to create event');
   }
 }
@@ -178,36 +212,74 @@ export async function updateEvent(id: number, formData: EventFormData) {
   }
   
   try {
-    const { categoryIds, imageUrl, ...validEventData } = formData;
+    const { categoryIds, ...eventData } = formData;
     
-    // Update event - only use fields that exist in the schema
-    await db.update(events)
-      .set(validEventData)
-      .where(eq(events.id, id));
-    
-    // Update category relationships if provided
-    if (categoryIds) {
-      // Remove existing relationships
-      await db.delete(eventToCategory)
-        .where(eq(eventToCategory.eventId, id));
-      
-      // Insert new relationships
-      if (categoryIds.length > 0) {
-        const categoryRelations = categoryIds.map(categoryId => ({
-          eventId: id,
-          categoryId,
-        }));
+    // Use a transaction for atomic updates
+    return await db.transaction(async (tx) => {
+      try {
+        // 1. Update the event data
+        await tx.update(events)
+          .set(eventData)
+          .where(eq(events.id, id));
         
-        await db.insert(eventToCategory).values(categoryRelations);
+        // 2. Handle category relationships if provided
+        if (categoryIds !== undefined) {
+          // Remove existing relationships
+          await tx.delete(eventToCategory)
+            .where(eq(eventToCategory.eventId, id));
+          
+          // If new categories are provided, validate and insert them
+          if (categoryIds && categoryIds.length > 0) {
+            // Validate that all category IDs exist
+            const existingCategories = await tx
+              .select({ id: eventCategories.id })
+              .from(eventCategories)
+              .where(inArray(eventCategories.id, categoryIds));
+            
+            // Get list of valid category IDs that actually exist
+            const validCategoryIds = existingCategories.map(cat => cat.id);
+            
+            // Only create relationships for valid categories
+            if (validCategoryIds.length > 0) {
+              const categoryRelations = validCategoryIds.map(categoryId => ({
+                eventId: id,
+                categoryId,
+              }));
+              
+              await tx.insert(eventToCategory).values(categoryRelations);
+            }
+            
+            // Log warning if some categories were invalid
+            if (validCategoryIds.length !== categoryIds.length) {
+              console.warn(`Some category IDs were invalid and skipped: ${categoryIds.filter(id => !validCategoryIds.includes(id))}`);
+            }
+          }
+        }
+        
+        revalidatePath('/dashboard/events');
+        revalidatePath(`/dashboard/events/${id}`);
+        revalidatePath(`/events/${id}`);
+        return { success: true };
+      } catch (error) {
+        // Transaction will automatically roll back on error
+        console.error('Transaction error:', error);
+        throw error;
       }
-    }
-    
-    revalidatePath('/dashboard/events');
-    revalidatePath(`/dashboard/events/${id}`);
-    revalidatePath(`/events/${id}`);
-    return { success: true };
+    });
   } catch (error) {
     console.error('Error updating event:', error);
+    // Provide more specific error message based on the error type
+    if (error instanceof Error) {
+      // Handle specific error types with custom messages
+      if (error.message.includes('violates foreign key constraint')) {
+        if (error.message.includes('category_id')) {
+          throw new Error('Failed to update event: One or more selected categories do not exist');
+        } else if (error.message.includes('venue_id')) {
+          throw new Error('Failed to update event: The selected venue does not exist');
+        }
+      }
+      throw new Error(`Failed to update event: ${error.message}`);
+    }
     throw new Error('Failed to update event');
   }
 }
