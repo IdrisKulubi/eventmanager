@@ -70,11 +70,11 @@ interface EventFormProps {
   initialData?: {
     id: number;
     title: string;
-    description: string;
-    venueId: number;
+    description: string | null;
+    venueId: number | null;
     startDate: string | Date;
     endDate: string | Date;
-    status: 'draft' | 'published' | 'cancelled' | 'completed';
+    status: 'draft' | 'published' | 'cancelled' | 'completed' | null;
     imageUrl?: string;
     categories: { id: number }[];
   };
@@ -88,6 +88,9 @@ export function EventForm({ venues, initialData }: EventFormProps) {
   const defaultValues = initialData
     ? {
         ...initialData,
+        description: initialData.description || "",
+        venueId: initialData.venueId || venues[0]?.id || 0,
+        status: initialData.status || "draft",
         startDate: new Date(initialData.startDate),
         endDate: new Date(initialData.endDate),
         categoryIds: initialData.categories.map((c) => c.id),
@@ -96,7 +99,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
       }
     : {
         title: "",
-        description: "",
+        description:"",
         venueId: venues[0]?.id || 0,
         startDate: new Date(),
         endDate: new Date(new Date().setHours(new Date().getHours() + 2)),
@@ -112,26 +115,54 @@ export function EventForm({ venues, initialData }: EventFormProps) {
     defaultValues,
   });
   
+  // Track if the form has been modified
+  const isDirty = form.formState.isDirty;
+  
   async function onSubmit(data: FormData) {
     try {
       setIsSubmitting(true);
       
       if (initialData) {
-        // Update existing event
-        await updateEvent(initialData.id, data);
-        toast.success("Event updated successfully");
+        // Update existing event with explicit parsing of values
+        const result = await updateEvent(initialData.id, {
+          ...data,
+          venueId: Number(data.venueId),
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          categoryIds: data.categoryIds || [],
+        });
+        
+        if (result && result.success) {
+          toast.success("Event updated successfully");
+          // Use setTimeout to ensure the toast appears before navigation
+          setTimeout(() => {
+            router.push("/dashboard/events");
+            router.refresh();
+          }, 500);
+        } else {
+          throw new Error("Failed to update event");
+        }
       } else {
         // Create new event
-        await createEvent(data);
-        toast.success("Event created successfully");
+        const result = await createEvent(data);
+        
+        if (result && result.success) {
+          toast.success("Event created successfully");
+          // Use setTimeout to ensure the toast appears before navigation
+          setTimeout(() => {
+            router.push("/dashboard/events");
+            router.refresh();
+          }, 500);
+        } else {
+          throw new Error("Failed to create event");
+        }
       }
-      
-      router.push("/dashboard/events");
-      router.refresh();
-    } catch (error) {
-      toast.error("Failed to save event");
-      console.error(error);
-    } finally {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Unknown error occurred";
+      toast.error(`Failed to save event: ${errorMessage}`);
+      console.error("Form submission error:", error);
       setIsSubmitting(false);
     }
   }
@@ -449,8 +480,17 @@ export function EventForm({ venues, initialData }: EventFormProps) {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : initialData ? "Update Event" : "Create Event"}
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || (initialData && !isDirty)}
+            className="bg-primary hover:bg-primary/90 text-white"
+          >
+            {isSubmitting 
+              ? "Saving..." 
+              : initialData 
+                ? "Update Event" 
+                : "Create Event"
+            }
           </Button>
         </div>
       </form>
