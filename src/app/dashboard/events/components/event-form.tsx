@@ -42,7 +42,9 @@ import { CalendarIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { EventFormSchema } from "@/lib/validators";
 import { createEvent, updateEvent } from "@/lib/actions/event.actions";
-import { eventCategories, venues as venuesSchema } from "@/db/schema";
+import { venues as venuesSchema } from "@/db/schema";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUE_TYPES } from "@/lib/constants";
 
 type FormData = {
   title: string;
@@ -62,25 +64,23 @@ type FormData = {
 
 // Define types based on the schema
 type Venue = typeof venuesSchema.$inferSelect;
-type Category = typeof eventCategories.$inferSelect;
 
 interface EventFormProps {
   venues: Venue[];
-  categories: Category[];
   initialData?: {
     id: number;
     title: string;
-    description: string;
-    venueId: number;
+    description: string | null;
+    venueId: number | null;
     startDate: string | Date;
     endDate: string | Date;
-    status: 'draft' | 'published' | 'cancelled' | 'completed';
+    status: 'draft' | 'published' | 'cancelled' | 'completed' | null;
     imageUrl?: string;
     categories: { id: number }[];
   };
 }
 
-export function EventForm({ venues, categories, initialData }: EventFormProps) {
+export function EventForm({ venues, initialData }: EventFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -88,6 +88,9 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
   const defaultValues = initialData
     ? {
         ...initialData,
+        description: initialData.description || "",
+        venueId: initialData.venueId || venues[0]?.id || 0,
+        status: initialData.status || "draft",
         startDate: new Date(initialData.startDate),
         endDate: new Date(initialData.endDate),
         categoryIds: initialData.categories.map((c) => c.id),
@@ -96,7 +99,7 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
       }
     : {
         title: "",
-        description: "",
+        description:"",
         venueId: venues[0]?.id || 0,
         startDate: new Date(),
         endDate: new Date(new Date().setHours(new Date().getHours() + 2)),
@@ -112,26 +115,54 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
     defaultValues,
   });
   
+  // Track if the form has been modified
+  const isDirty = form.formState.isDirty;
+  
   async function onSubmit(data: FormData) {
     try {
       setIsSubmitting(true);
       
       if (initialData) {
-        // Update existing event
-        await updateEvent(initialData.id, data);
-        toast.success("Event updated successfully");
+        // Update existing event with explicit parsing of values
+        const result = await updateEvent(initialData.id, {
+          ...data,
+          venueId: Number(data.venueId),
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          categoryIds: data.categoryIds || [],
+        });
+        
+        if (result && result.success) {
+          toast.success("Event updated successfully");
+          // Use setTimeout to ensure the toast appears before navigation
+          setTimeout(() => {
+            router.push("/dashboard/events");
+            router.refresh();
+          }, 500);
+        } else {
+          throw new Error("Failed to update event");
+        }
       } else {
         // Create new event
-        await createEvent(data);
-        toast.success("Event created successfully");
+        const result = await createEvent(data);
+        
+        if (result && result.success) {
+          toast.success("Event created successfully");
+          // Use setTimeout to ensure the toast appears before navigation
+          setTimeout(() => {
+            router.push("/dashboard/events");
+            router.refresh();
+          }, 500);
+        } else {
+          throw new Error("Failed to create event");
+        }
       }
-      
-      router.push("/dashboard/events");
-      router.refresh();
-    } catch (error) {
-      toast.error("Failed to save event");
-      console.error(error);
-    } finally {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Unknown error occurred";
+      toast.error(`Failed to save event: ${errorMessage}`);
+      console.error("Form submission error:", error);
       setIsSubmitting(false);
     }
   }
@@ -195,7 +226,7 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {venues.map((venue) => (
+                      {VENUE_TYPES.map((venue) => (
                         <SelectItem
                           key={venue.id}
                           value={venue.id.toString()}
@@ -206,7 +237,30 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose where your event will take place.
+                    Choose a venue for your event. Available venue types: {VENUE_TYPES.map(t => t.name).join(', ')}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Poster</FormLabel>
+                  <FormControl>
+                    <ImageUploadField
+                      value={field.value}
+                      onChange={field.onChange}
+                      label="Upload Event Poster"
+                      error={form.formState.errors.imageUrl?.message}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Upload a poster image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
+                    Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -350,7 +404,7 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                         <CommandInput placeholder="Search categories..." />
                         <CommandEmpty>No category found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-auto">
-                          {categories.map((category) => {
+                          {EVENT_CATEGORIES.map((category) => {
                             const isSelected = field.value?.includes(category.id);
                             return (
                               <CommandItem
@@ -401,9 +455,11 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      {EVENT_STATUSES.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormDescription>
@@ -424,8 +480,17 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : initialData ? "Update Event" : "Create Event"}
+          <Button 
+            type="submit" 
+            disabled={isSubmitting || (initialData && !isDirty)}
+            className="bg-primary hover:bg-primary/90 text-white"
+          >
+            {isSubmitting 
+              ? "Saving..." 
+              : initialData 
+                ? "Update Event" 
+                : "Create Event"
+            }
           </Button>
         </div>
       </form>

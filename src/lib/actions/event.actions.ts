@@ -1,14 +1,23 @@
 'use server';
 
-import { events, eventToCategory } from '@/db/schema';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { eq, and, inArray, gte, like, desc, asc, count } from 'drizzle-orm';
 import { z } from 'zod';
 import db from '@/db/drizzle';
 import { EventFormSchema } from '../validators';
+import { events, eventToCategory, eventCategories, venues } from '@/db/schema';
 
 type EventFormData = z.infer<typeof EventFormSchema>;
+
+//  User type with role property
+interface User {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: 'admin' | 'manager' | 'user';
+}
 
 // Authorization check for event management
 async function checkEventManagementPermission() {
@@ -18,27 +27,26 @@ async function checkEventManagementPermission() {
   }
 
   // Only admin and manager roles can manage events
-  return session.user.role === 'admin' || session.user.role === 'manager';
+  const user = session.user as User;
+  return user.role === 'admin' || user.role === 'manager';
 }
 
 export async function getEvents({
   page = 1,
   limit = 10,
-  status,
   search,
+  status,
+  categoryId,
   sortBy = 'startDate',
   sortOrder = 'desc',
-  categoryId,
-  venueId,
 }: {
   page?: number;
   limit?: number;
-  status?: 'draft' | 'published' | 'cancelled' | 'completed';
   search?: string;
+  status?: 'draft' | 'published' | 'cancelled' | 'completed';
+  categoryId?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
-  categoryId?: number;
-  venueId?: number;
 }) {
   try {
     // For public listing, no auth check needed
@@ -53,10 +61,6 @@ export async function getEvents({
     
     if (search) {
       conditions.push(like(events.title, `%${search}%`));
-    }
-    
-    if (venueId) {
-      conditions.push(eq(events.venueId, venueId));
     }
     
     // If filtering by category, need to join with eventToCategory
@@ -102,25 +106,50 @@ export async function getEvents({
 
 export async function getEventById(id: number) {
   try {
-    const event = await db.select().from(events).where(eq(events.id, id)).limit(1);
+    // Get the event with all its details
+    const event = await db.select({
+      id: events.id,
+      title: events.title,
+      description: events.description,
+      bannerImage: events.bannerImage,
+      venueId: events.venueId,
+      venueName: venues.name,
+      startDate: events.startDate,
+      endDate: events.endDate,
+      status: events.status,
+      isPublic: events.isPublic,
+      isFeatured: events.isFeatured,
+      ageRestriction: events.ageRestriction,
+      maxTickets: events.maxTickets,
+      imageUrl: events.bannerImage,
+      createdAt: events.createdAt,
+      updatedAt: events.updatedAt,
+    })
+    .from(events)
+    .leftJoin(venues, eq(events.venueId, venues.id))
+    .where(eq(events.id, id))
+    .limit(1);
     
     if (!event.length) {
       return null;
     }
     
-    // Get event categories
-    const eventCategoryRelations = await db
+    // Get event categories with their names
+    const categoriesData = await db
       .select({
-        categoryId: eventToCategory.categoryId,
+        id: eventCategories.id,
+        name: eventCategories.name,
       })
       .from(eventToCategory)
+      .innerJoin(
+        eventCategories,
+        eq(eventToCategory.categoryId, eventCategories.id)
+      )
       .where(eq(eventToCategory.eventId, id));
-    
-    const categoryIds = eventCategoryRelations.map(relation => relation.categoryId);
     
     return {
       ...event[0],
-      categoryIds,
+      categories: categoriesData,
     };
   } catch (error) {
     console.error('Error fetching event:', error);
@@ -129,96 +158,250 @@ export async function getEventById(id: number) {
 }
 
 export async function createEvent(formData: EventFormData) {
+  console.log("createEvent called with data:", JSON.stringify(formData, null, 2));
+  
   const hasPermission = await checkEventManagementPermission();
   if (!hasPermission) {
-    throw new Error('Unauthorized: You do not have permission to create events');
+    return {
+      success: false,
+      error: 'Unauthorized: You do not have permission to create events'
+    };
   }
   
   try {
     const session = await auth();
     const { categoryIds, ...eventData } = formData;
     const user = session?.user;
-    
-    // Insert event
-    const [newEvent] = await db.insert(events).values({
-      ...eventData,
-      createdById: user?.id,
-    }).returning();
-    
-    // Insert category relationships if provided
-    if (categoryIds && categoryIds.length > 0) {
-      const categoryRelations = categoryIds.map(categoryId => ({
-        eventId: newEvent.id,
-        categoryId,
-      }));
-      
-      await db.insert(eventToCategory).values(categoryRelations);
+
+    // Validate essential data
+    if (!eventData.title || !eventData.startDate || !eventData.endDate) {
+      return { 
+        success: false, 
+        error: 'Missing required fields' 
+      };
     }
     
-    revalidatePath('/dashboard/events');
-    return { success: true, eventId: newEvent.id };
+    // Start a transaction to ensure all operations succeed or fail together
+    return await db.transaction(async (tx) => {
+      try {
+        // 1. First create the event without categories
+        const [newEvent] = await tx.insert(events).values({
+          ...eventData,
+          createdById: user?.id,
+        }).returning();
+        
+        // 2. If categories are provided, validate and insert them
+        if (categoryIds && categoryIds.length > 0) {
+          // Validate that all category IDs exist before creating relationships
+          const existingCategories = await tx
+            .select({ id: eventCategories.id })
+            .from(eventCategories)
+            .where(inArray(eventCategories.id, categoryIds));
+          
+          // Get list of valid category IDs that actually exist
+          const validCategoryIds = existingCategories.map(cat => cat.id);
+          
+          // Only create relationships for valid categories
+          if (validCategoryIds.length > 0) {
+            const categoryRelations = validCategoryIds.map(categoryId => ({
+              eventId: newEvent.id,
+              categoryId,
+            }));
+            
+            await tx.insert(eventToCategory).values(categoryRelations);
+          }
+          
+          // Log warning if some categories were invalid
+          if (validCategoryIds.length !== categoryIds.length) {
+            console.warn(`Some category IDs were invalid and skipped: ${categoryIds.filter(id => !validCategoryIds.includes(id))}`);
+          }
+        }
+        
+        revalidatePath('/dashboard/events');
+        return { 
+          success: true, 
+          eventId: newEvent.id,
+          message: 'Event created successfully' 
+        };
+      } catch (txError) {
+        // Transaction will automatically roll back on error
+        console.error('Transaction error:', txError);
+        throw txError;
+      }
+    });
   } catch (error) {
     console.error('Error creating event:', error);
-    throw new Error('Failed to create event');
+    // Provide more specific error message based on the error type
+    if (error instanceof Error) {
+      return { 
+        success: false, 
+        error: `Failed to create event: ${error.message}` 
+      };
+    }
+    return { 
+      success: false, 
+      error: 'Failed to create event due to an unknown error' 
+    };
   }
 }
 
 export async function updateEvent(id: number, formData: EventFormData) {
+  console.log("updateEvent called with id:", id, "and data:", JSON.stringify(formData, null, 2));
+  
   const hasPermission = await checkEventManagementPermission();
   if (!hasPermission) {
-    throw new Error('Unauthorized: You do not have permission to update events');
+    return {
+      success: false,
+      error: 'Unauthorized: You do not have permission to update events'
+    };
   }
   
   try {
     const { categoryIds, ...eventData } = formData;
     
-    // Update event
-    await db.update(events)
-      .set(eventData)
-      .where(eq(events.id, id));
-    
-    // Update category relationships if provided
-    if (categoryIds) {
-      // Remove existing relationships
-      await db.delete(eventToCategory)
-        .where(eq(eventToCategory.eventId, id));
-      
-      // Insert new relationships
-      if (categoryIds.length > 0) {
-        const categoryRelations = categoryIds.map(categoryId => ({
-          eventId: id,
-          categoryId,
-        }));
-        
-        await db.insert(eventToCategory).values(categoryRelations);
-      }
+    // Validate essential data
+    if (!eventData.title || !eventData.startDate || !eventData.endDate) {
+      return { 
+        success: false, 
+        error: 'Missing required fields' 
+      };
     }
     
-    revalidatePath('/dashboard/events');
-    revalidatePath(`/dashboard/events/${id}`);
-    revalidatePath(`/events/${id}`);
-    return { success: true };
+    // Use a transaction for atomic updates
+    return await db.transaction(async (tx) => {
+      try {
+        // 1. Update the event data
+        await tx.update(events)
+          .set(eventData)
+          .where(eq(events.id, id));
+        
+        // 2. Handle category relationships if provided
+        if (categoryIds !== undefined) {
+          // Remove existing relationships
+          await tx.delete(eventToCategory)
+            .where(eq(eventToCategory.eventId, id));
+          
+          // If new categories are provided, validate and insert them
+          if (categoryIds && categoryIds.length > 0) {
+            // Validate that all category IDs exist
+            const existingCategories = await tx
+              .select({ id: eventCategories.id })
+              .from(eventCategories)
+              .where(inArray(eventCategories.id, categoryIds));
+            
+            // Get list of valid category IDs that actually exist
+            const validCategoryIds = existingCategories.map(cat => cat.id);
+            
+            // Only create relationships for valid categories
+            if (validCategoryIds.length > 0) {
+              const categoryRelations = validCategoryIds.map(categoryId => ({
+                eventId: id,
+                categoryId,
+              }));
+              
+              await tx.insert(eventToCategory).values(categoryRelations);
+            }
+            
+            // Log warning if some categories were invalid
+            if (validCategoryIds.length !== categoryIds.length) {
+              console.warn(`Some category IDs were invalid and skipped: ${categoryIds.filter(id => !validCategoryIds.includes(id))}`);
+            }
+          }
+        }
+        
+        // Revalidate paths to update UI
+        revalidatePath('/dashboard/events');
+        revalidatePath(`/dashboard/events/${id}`);
+        revalidatePath(`/events/${id}`);
+        
+        return { 
+          success: true, 
+          message: 'Event updated successfully'
+        };
+      } catch (txError) {
+        // Transaction will automatically roll back on error
+        console.error('Transaction error:', txError);
+        throw txError;
+      }
+    });
   } catch (error) {
     console.error('Error updating event:', error);
-    throw new Error('Failed to update event');
+    // Provide more specific error message based on the error type
+    if (error instanceof Error) {
+      return { 
+        success: false, 
+        error: `Failed to update event: ${error.message}` 
+      };
+    }
+    return { 
+      success: false, 
+      error: 'Failed to update event due to an unknown error' 
+    };
   }
 }
 
 export async function deleteEvent(id: number) {
+  console.log("Attempting to delete event:", id);
+  
   const hasPermission = await checkEventManagementPermission();
   if (!hasPermission) {
-    throw new Error('Unauthorized: You do not have permission to delete events');
+    return {
+      success: false,
+      error: 'Unauthorized: You do not have permission to delete events'
+    };
   }
   
   try {
-    // Delete the event
-    await db.delete(events).where(eq(events.id, id));
+    // First check if the event exists
+    const existingEvent = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.id, id))
+      .limit(1);
+      
+    if (!existingEvent.length) {
+      return { 
+        success: false, 
+        error: 'Event not found' 
+      };
+    }
     
-    revalidatePath('/dashboard/events');
-    return { success: true };
+    // Use a transaction to ensure all related data is deleted properly
+    return await db.transaction(async (tx) => {
+      try {
+        // 1. Delete event-to-category relationships
+        await tx.delete(eventToCategory)
+          .where(eq(eventToCategory.eventId, id));
+          
+        // 2. Delete the event itself
+        await tx.delete(events)
+          .where(eq(events.id, id));
+        
+        // Revalidate relevant paths
+        revalidatePath('/dashboard/events');
+        revalidatePath('/events');
+        
+        return { 
+          success: true, 
+          message: 'Event deleted successfully' 
+        };
+      } catch (txError) {
+        console.error('Transaction error during event deletion:', txError);
+        throw txError;
+      }
+    });
   } catch (error) {
     console.error('Error deleting event:', error);
-    throw new Error('Failed to delete event');
+    if (error instanceof Error) {
+      return { 
+        success: false, 
+        error: `Failed to delete event: ${error.message}` 
+      };
+    }
+    return { 
+      success: false, 
+      error: 'Failed to delete event due to an unknown error' 
+    };
   }
 }
 
@@ -251,7 +434,6 @@ export async function getUpcomingEvents(limit = 6) {
       .from(events)
       .where(and(
         eq(events.status, 'published'),
-        eq(events.isPublic, true),
         gte(events.startDate, now)
       ))
       .orderBy(asc(events.startDate))
@@ -272,8 +454,6 @@ export async function getFeaturedEvents(limit = 3) {
       .from(events)
       .where(and(
         eq(events.status, 'published'),
-        eq(events.isPublic, true),
-        eq(events.isFeatured, true),
         gte(events.startDate, now)
       ))
       .orderBy(asc(events.startDate))

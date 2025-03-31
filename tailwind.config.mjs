@@ -1,7 +1,7 @@
-import tailwindcssAnimate from "tailwindcss-animate";
+import { withUt } from "uploadthing/tw";
 
 /** @type {import('tailwindcss').Config} */
-export default {
+export default withUt({
   darkMode: ["class"],
   content: [
     './pages/**/*.{ts,tsx}',
@@ -60,15 +60,16 @@ export default {
       },
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
+        heading: ["var(--font-heading)", ...fontFamily.sans],
       },
       keyframes: {
         "accordion-down": {
-          from: { height: 0 },
+          from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
+          to: { height: "0" },
         },
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
@@ -107,5 +108,7 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate],
-} 
+  plugins: [
+    import("tailwindcss-animate"),
+  ],
+}); 

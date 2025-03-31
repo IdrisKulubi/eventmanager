@@ -1,38 +1,26 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getAllVenues } from "@/lib/actions/venue.actions";
-import { getAllCategories } from "@/lib/actions/category.actions";
-import { EventForm } from "@/app/dashboard/events/components/event-form";
-import { Heading } from "@/components/ui/heading";
-import { Separator } from "@/components/ui/separator";
+import { EventForm } from "../components/event-form";
 
-export const metadata = {
-  title: "Create Event",
-  description: "Create a new event",
-};
+export const dynamic = 'force-dynamic';
 
 export default async function CreateEventPage() {
+  // Check authorization
   const session = await auth();
   
-  // Check if user is authenticated and has required role
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/sign-in');
+    redirect('/auth/login?callbackUrl=/dashboard/events/create');
   }
   
-  // Fetch venues and categories for the form
+  // Fetch venues for the form
   const venues = await getAllVenues();
-  const categories = await getAllCategories();
   
   return (
     <div className="container py-10">
-      <Heading
-        title="Create Event"
-        description="Add a new event to your platform"
-      />
-      <Separator className="my-6" />
-      
+      <h1 className="text-3xl font-bold tracking-tight mb-8">Create Event</h1>
       <div className="max-w-5xl mx-auto">
-        <EventForm venues={venues} categories={categories} />
+        <EventForm venues={venues} />
       </div>
     </div>
   );
