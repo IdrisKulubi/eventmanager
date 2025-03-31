@@ -25,18 +25,19 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 interface EventsPageProps {
-  searchParams: {
+  searchParams: Promise<{
     page?: string;
     limit?: string;
     search?: string;
     status?: string;
     category?: string;
     sort?: string;
-  };
+  }>;
 }
 
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const session = await auth();
+  const params = await searchParams;
   
   // Debug logs for session
   console.log("Session:", JSON.stringify({
@@ -62,15 +63,15 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
     console.log("Redirecting to auth/login due to unauthorized access");
-    redirect('/sign-in');
+    redirect('/auth/login?callbackUrl=/dashboard/events');
   }
   
-  const page = Number(searchParams.page) || 1;
-  const limit = Number(searchParams.limit) || 10;
-  const search = searchParams.search || '';
-  const status = searchParams.status || '';
-  const categoryId = searchParams.category ? Number(searchParams.category) : undefined;
-  const sort = searchParams.sort || 'startDate-desc';
+  const page = Number(params.page) || 1;
+  const limit = Number(params.limit) || 10;
+  const search = params.search || '';
+  const status = params.status || '';
+  const categoryId = params.category ? Number(params.category) : undefined;
+  const sort = params.sort || 'startDate-desc';
   
   const [sortField, sortOrder] = sort.split('-');
   
@@ -108,7 +109,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         
         <div className="mt-4 rounded-md border">
           <DataTable 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             columns={columns as ColumnDef<Record<string, any>, unknown>[]} 
             data={events} 
           />
@@ -120,7 +120,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious 
-                    href={page > 1 ? `/dashboard/events?page=${page - 1}&limit=${limit}&search=${search}&status=${status}&category=${searchParams.category || ''}&sort=${sort}` : '#'} 
+                    href={page > 1 ? `/dashboard/events?page=${page - 1}&limit=${limit}&search=${search}&status=${status}&category=${params.category || ''}&sort=${sort}` : '#'} 
                     aria-disabled={page <= 1}
                     className={page <= 1 ? 'pointer-events-none opacity-50' : ''}
                   />
@@ -132,7 +132,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                 </PaginationItem>
                 <PaginationItem>
                   <PaginationNext 
-                    href={page < totalPages ? `/dashboard/events?page=${page + 1}&limit=${limit}&search=${search}&status=${status}&category=${searchParams.category || ''}&sort=${sort}` : '#'} 
+                    href={page < totalPages ? `/dashboard/events?page=${page + 1}&limit=${limit}&search=${search}&status=${status}&category=${params.category || ''}&sort=${sort}` : '#'} 
                     aria-disabled={page >= totalPages}
                     className={page >= totalPages ? 'pointer-events-none opacity-50' : ''}
                   />

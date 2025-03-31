@@ -11,6 +11,7 @@ export async function GET() {
       name: session.user.name,
       email: session.user.email,
       role: session.user.role
-    } : null
+    } : null,
+    session: session,
   });
 } 
