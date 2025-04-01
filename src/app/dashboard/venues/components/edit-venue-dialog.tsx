@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -24,18 +24,43 @@ export function EditVenueDialog({ venueId }: EditVenueDialogProps) {
   const [loading, setLoading] = useState(false);
   const [venue, setVenue] = useState<Venue | null>(null);
   const router = useRouter();
+  
+  // Reset venue state when dialog is closed
+  useEffect(() => {
+    if (!open) {
+      // Small delay to avoid UI flicker
+      const timer = setTimeout(() => {
+        setVenue(null);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   const handleOpen = async (isOpen: boolean) => {
     setOpen(isOpen);
     
+    // If closing, just let the useEffect handle cleanup
+    if (!isOpen) {
+      return;
+    }
+    
+    // Fetch venue data if opening and no data
     if (isOpen && !venue) {
       try {
         setLoading(true);
         const venueData = await getVenueById(venueId);
+        
+        if (!venueData) {
+          toast.error("Venue not found");
+          setOpen(false);
+          return;
+        }
+        
         setVenue(venueData);
       } catch (error) {
         toast.error("Failed to load venue data");
         console.error(error);
+        setOpen(false);
       } finally {
         setLoading(false);
       }
@@ -43,8 +68,21 @@ export function EditVenueDialog({ venueId }: EditVenueDialogProps) {
   };
 
   const handleSuccess = () => {
+    toast.success("Venue updated successfully");
     setOpen(false);
     router.refresh();
+  };
+
+  // Format venue data for the form
+  const getFormData = (venue: Venue) => {
+    return {
+      id: venue.id,
+      name: venue.name,
+      address: venue.address, 
+      city: venue.city,
+      capacity: venue.capacity,
+      description: venue.description || undefined
+    };
   };
 
   return (
@@ -65,13 +103,10 @@ export function EditVenueDialog({ venueId }: EditVenueDialogProps) {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : venue ? (
-            <VenueForm initialData={{
-              id: venue.id,
-              name: venue.name,
-              address: venue.address,
-              capacity: venue.capacity,
-              description: venue.description || undefined
-            }} onSuccess={handleSuccess} />
+            <VenueForm 
+              initialData={getFormData(venue)} 
+              onSuccess={handleSuccess} 
+            />
           ) : (
             <div className="py-4 text-center text-muted-foreground">
               Failed to load venue data

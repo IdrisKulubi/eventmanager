@@ -32,6 +32,7 @@ export default async function EditVenuePage({ params }: EditVenuePageProps) {
     id: venueData.id,
     name: venueData.name,
     address: venueData.address,
+    city: venueData.city,
     capacity: venueData.capacity,
     description: venueData.description === null ? undefined : venueData.description
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,8 +19,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { createVenue, updateVenue } from '@/lib/actions/venue.actions';
 import { useRouter } from 'next/navigation';
-import { formSchema } from '@/lib/validators';
 import { Loader2 } from 'lucide-react';
+
+// Define a complete schema that matches the database requirements
+const formSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Name must be at least 2 characters.',
+  }),
+  address: z.string().min(5, {
+    message: 'Address must be at least 5 characters.',
+  }),
+  city: z.string().default(''),
+  capacity: z.coerce.number().min(1, {
+    message: 'Capacity must be at least 1.',
+  }),
+  description: z.string().optional(),
+});
 
 type VenueFormValues = z.infer<typeof formSchema>;
 
@@ -31,6 +45,7 @@ interface VenueFormProps {
     address: string;
     capacity: number;
     description?: string;
+    city?: string;
   };
   onSuccess?: () => void;
 }
@@ -38,18 +53,35 @@ interface VenueFormProps {
 export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formKey, setFormKey] = useState(`venue-${initialData?.id || 'new'}-${Date.now()}`);
 
+  // Create the form
   const form = useForm<VenueFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: initialData || {
-      name: '',
-      address: '',
-      capacity: 1,
-      description: '',
+    defaultValues: {
+      name: initialData?.name || '',
+      address: initialData?.address || '',
+      city: initialData?.city || '',
+      capacity: initialData?.capacity || 1,
+      description: initialData?.description || '',
     },
   });
 
-  // Check if the form has been modified
+  // Reset form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name,
+        address: initialData.address,
+        city: initialData.city || '',
+        capacity: initialData.capacity,
+        description: initialData.description || '',
+      });
+      setFormKey(`venue-${initialData.id}-${Date.now()}`);
+    }
+  }, [form, initialData]);
+
+  // Check if any field has been modified
   const isDirty = form.formState.isDirty;
 
   async function onSubmit(data: VenueFormValues) {
@@ -57,10 +89,22 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
       setIsSubmitting(true);
       
       if (initialData) {
-        await updateVenue(initialData.id, data);
+        await updateVenue(initialData.id, {
+          ...data,
+          // Include any fields required by VenueFormData but not in our form
+          coordinates: undefined,
+          imageUrl: undefined,
+          contactInfo: undefined,
+        });
         toast.success('Venue updated successfully');
       } else {
-        await createVenue(data);
+        await createVenue({
+          ...data,
+          // Include any fields required by VenueFormData but not in our form
+          coordinates: undefined,
+          imageUrl: undefined,
+          contactInfo: undefined,
+        });
         toast.success('Venue created successfully');
       }
       
@@ -79,7 +123,7 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
   }
 
   return (
-    <Form {...form}>
+    <Form {...form} key={formKey}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
@@ -109,6 +153,23 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
               </FormControl>
               <FormDescription>
                 The physical address of the venue.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="city"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>City</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter city" {...field} />
+              </FormControl>
+              <FormDescription>
+                The city where the venue is located.
               </FormDescription>
               <FormMessage />
             </FormItem>
