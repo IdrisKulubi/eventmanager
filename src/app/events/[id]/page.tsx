@@ -42,7 +42,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   const formattedEndTime = format(new Date(event.endDate), "h:mm a");
   
   // Default image if none provided
-  const imageUrl = event.imageUrl || "/placeholder-event.jpg";
+  const imageUrl = event.bannerImage || "/placeholder-event.jpg";
   
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8">

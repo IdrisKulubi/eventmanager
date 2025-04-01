@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -43,8 +43,9 @@ import { cn } from "@/lib/utils";
 import { EventFormSchema } from "@/lib/validators";
 import { createEvent, updateEvent } from "@/lib/actions/event.actions";
 import { venues as venuesSchema } from "@/db/schema";
-import { ImageUploadField } from "@/components/ui/image-upload-field";
 import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUE_TYPES } from "@/lib/constants";
+import Image from "next/image";
+import { UploadButton } from "@/lib/uploadthing";
 
 type FormData = {
   title: string;
@@ -55,7 +56,6 @@ type FormData = {
   categoryIds?: number[];
   status: 'draft' | 'published' | 'cancelled' | 'completed';
   bannerImage?: string;
-  imageUrl?: string;
   isPublic: boolean;
   isFeatured: boolean;
   ageRestriction?: number;
@@ -75,14 +75,23 @@ interface EventFormProps {
     startDate: string | Date;
     endDate: string | Date;
     status: 'draft' | 'published' | 'cancelled' | 'completed' | null;
-    imageUrl?: string;
+    bannerImage?: string;
     categories: { id: number }[];
   };
+}
+
+// Add type for upload response
+interface UploadResponse {
+  url: string;
+  key: string;
+  name: string;
+  size: number;
 }
 
 export function EventForm({ venues, initialData }: EventFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUploadComplete, setImageUploadComplete] = useState(false);
   
   // Parse initial data for the form
   const defaultValues = initialData
@@ -105,7 +114,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
         endDate: new Date(new Date().setHours(new Date().getHours() + 2)),
         categoryIds: [],
         status: "draft" as const,
-        imageUrl: "",
+        bannerImage: "",
         isPublic: true,
         isFeatured: false,
       };
@@ -115,22 +124,49 @@ export function EventForm({ venues, initialData }: EventFormProps) {
     defaultValues,
   });
   
+  // Watch the bannerImage field for preview
+  const bannerImageValue = form.watch("bannerImage");
+  
+  // Update image upload status based on bannerImage value
+  useEffect(() => {
+    console.log("Banner image changed:", bannerImageValue);
+    if (bannerImageValue) {
+      setImageUploadComplete(true);
+    }
+  }, [bannerImageValue]);
+  
   // Track if the form has been modified
   const isDirty = form.formState.isDirty;
+
+  // Custom handler for image upload completion
+  const handleImageUpload = (res: UploadResponse[]) => {
+    console.log("Image upload complete, received URL:", res[0].url);
+    form.setValue("bannerImage", res[0].url);
+    setImageUploadComplete(true);
+    toast.success("Image uploaded successfully");
+  };
   
   async function onSubmit(data: FormData) {
     try {
+      console.log("Form submission data:", JSON.stringify(data, null, 2));
+      console.log("Banner image URL from form:", data.bannerImage);
       setIsSubmitting(true);
       
       if (initialData) {
-        // Update existing event with explicit parsing of values
-        const result = await updateEvent(initialData.id, {
+        // Ensure bannerImage is explicitly included
+        const updateData = {
           ...data,
           venueId: Number(data.venueId),
           startDate: new Date(data.startDate),
           endDate: new Date(data.endDate),
           categoryIds: data.categoryIds || [],
-        });
+          bannerImage: data.bannerImage || undefined // Use undefined instead of null
+        };
+        
+        console.log("Update data being sent:", JSON.stringify(updateData, null, 2));
+        
+        // Update existing event
+        const result = await updateEvent(initialData.id, updateData);
         
         if (result && result.success) {
           toast.success("Event updated successfully");
@@ -143,8 +179,20 @@ export function EventForm({ venues, initialData }: EventFormProps) {
           throw new Error("Failed to update event");
         }
       } else {
+        // Ensure bannerImage is explicitly included
+        const createData = {
+          ...data,
+          venueId: Number(data.venueId),
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          categoryIds: data.categoryIds || [],
+          bannerImage: data.bannerImage || undefined // Use undefined instead of null
+        };
+        
+        console.log("Create data being sent:", JSON.stringify(createData, null, 2));
+        
         // Create new event
-        const result = await createEvent(data);
+        const result = await createEvent(createData);
         
         if (result && result.success) {
           toast.success("Event created successfully");
@@ -246,21 +294,55 @@ export function EventForm({ venues, initialData }: EventFormProps) {
 
             <FormField
               control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
+              name="bannerImage"
+              render={() => (
                 <FormItem>
-                  <FormLabel>Event Poster</FormLabel>
+                  <FormLabel>Event Banner</FormLabel>
                   <FormControl>
-                    <ImageUploadField
-                      value={field.value}
-                      onChange={field.onChange}
-                      label="Upload Event Poster"
-                      error={form.formState.errors.imageUrl?.message}
-                    />
+                    <div className="space-y-4">
+                      {bannerImageValue ? (
+                        <div className="relative w-full h-48">
+                          <Image
+                            src={bannerImageValue}
+                            alt="Event banner"
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              form.setValue("bannerImage", undefined);
+                              setImageUploadComplete(false);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                          <UploadButton
+                            endpoint="imageUploader"
+                            onClientUploadComplete={handleImageUpload}
+                            onUploadError={(error: Error) => {
+                              toast.error(`Upload failed: ${error.message}`);
+                            }}
+                            className="ut-button:bg-primary ut-button:text-white ut-button:hover:bg-primary/90"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </FormControl>
                   <FormDescription>
-                    Upload a poster image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
+                    Upload a banner image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
                     Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
+                    {imageUploadComplete && (
+                      <div className="mt-2 text-green-600">
+                        ✓ Image uploaded successfully
+                      </div>
+                    )}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -489,7 +571,9 @@ export function EventForm({ venues, initialData }: EventFormProps) {
               ? "Saving..." 
               : initialData 
                 ? "Update Event" 
-                : "Create Event"
+                : bannerImageValue
+                  ? "Create Event"
+                  : "Create Event (No Image)"
             }
           </Button>
         </div>

@@ -8,7 +8,7 @@ export const eventFormSchema = z.object({
   venueId: z.number().min(1, "Venue is required"),
   categoryId: z.number().min(1, "Category is required"),
   status: z.enum(["draft", "published", "cancelled", "completed"]),
-  imageUrl: z.string().optional(),
+  bannerImage: z.string().optional(),
   maxTickets: z.number().min(0, "Maximum tickets must be 0 or greater"),
   price: z.number().min(0, "Price must be 0 or greater"),
 });

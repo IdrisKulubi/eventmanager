@@ -121,7 +121,6 @@ export async function getEventById(id: number) {
       isFeatured: events.isFeatured,
       ageRestriction: events.ageRestriction,
       maxTickets: events.maxTickets,
-      imageUrl: events.bannerImage,
       createdAt: events.createdAt,
       updatedAt: events.updatedAt,
     })
@@ -181,14 +180,36 @@ export async function createEvent(formData: EventFormData) {
       };
     }
     
+    // Ensure the banner image is properly handled
+    console.log("Banner image URL before saving:", eventData.bannerImage);
+    
     // Start a transaction to ensure all operations succeed or fail together
     return await db.transaction(async (tx) => {
       try {
-        // 1. First create the event without categories
-        const [newEvent] = await tx.insert(events).values({
-          ...eventData,
+        // Explicitly create an object with all fields including bannerImage
+        const eventToInsert = {
+          title: eventData.title,
+          description: eventData.description,
+          bannerImage: eventData.bannerImage || null, // Ensure bannerImage is included
+          venueId: eventData.venueId,
+          startDate: eventData.startDate,
+          endDate: eventData.endDate,
+          status: eventData.status,
+          isPublic: eventData.isPublic,
+          isFeatured: eventData.isFeatured,
+          ageRestriction: eventData.ageRestriction,
+          maxTickets: eventData.maxTickets,
           createdById: user?.id,
-        }).returning();
+        };
+        
+        console.log("Inserting event with data:", JSON.stringify(eventToInsert, null, 2));
+        
+        // 1. First create the event without categories
+        const [newEvent] = await tx.insert(events)
+          .values(eventToInsert)
+          .returning();
+        
+        console.log("Created event with data:", newEvent);
         
         // 2. If categories are provided, validate and insert them
         if (categoryIds && categoryIds.length > 0) {
@@ -267,13 +288,36 @@ export async function updateEvent(id: number, formData: EventFormData) {
       };
     }
     
+    // Ensure the banner image is properly handled
+    console.log("Banner image URL before updating:", eventData.bannerImage);
+    
     // Use a transaction for atomic updates
     return await db.transaction(async (tx) => {
       try {
+        // Explicitly create an object with all fields including bannerImage
+        const eventToUpdate = {
+          title: eventData.title,
+          description: eventData.description,
+          bannerImage: eventData.bannerImage || null, // Ensure bannerImage is included
+          venueId: eventData.venueId,
+          startDate: eventData.startDate,
+          endDate: eventData.endDate,
+          status: eventData.status,
+          isPublic: eventData.isPublic,
+          isFeatured: eventData.isFeatured,
+          ageRestriction: eventData.ageRestriction,
+          maxTickets: eventData.maxTickets,
+        };
+        
+        console.log("Updating event with data:", JSON.stringify(eventToUpdate, null, 2));
+        
         // 1. Update the event data
-        await tx.update(events)
-          .set(eventData)
-          .where(eq(events.id, id));
+        const updatedEvent = await tx.update(events)
+          .set(eventToUpdate)
+          .where(eq(events.id, id))
+          .returning();
+        
+        console.log("Updated event with data:", updatedEvent);
         
         // 2. Handle category relationships if provided
         if (categoryIds !== undefined) {

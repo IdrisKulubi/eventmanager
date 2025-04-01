@@ -23,6 +23,7 @@ export function ImageUploadField({
   const [preview, setPreview] = useState<string | null>(value || null);
 
   const handleUploadComplete = (res: { fileUrl: string; fileKey: string }) => {
+    console.log("Upload complete, received URL:", res.fileUrl);
     onChange(res.fileUrl);
     setPreview(res.fileUrl);
   };

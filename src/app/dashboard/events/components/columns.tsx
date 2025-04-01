@@ -28,6 +28,7 @@ export type Event = {
   venueName: string;
   status: string;
   categories: { id: number; name: string }[];
+  bannerImage?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 };
