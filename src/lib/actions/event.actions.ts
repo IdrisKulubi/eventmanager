@@ -7,6 +7,8 @@ import { z } from 'zod';
 import db from '@/db/drizzle';
 import { EventFormSchema } from '../validators';
 import { events, eventToCategory, eventCategories, venues } from '@/db/schema';
+import { getVenueNameById, mapCategoryIdsToCategories } from '@/lib/utils';
+import { VENUES, EVENT_CATEGORIES } from '@/lib/constants';
 
 type EventFormData = z.infer<typeof EventFormSchema>;
 
@@ -97,7 +99,40 @@ export async function getEvents({
     // Execute query
     const eventsList = await paginatedQuery;
     
-    return { events: eventsList, count: total };
+    // Get category data for all events
+    const eventIds = eventsList.map(event => event.id);
+    const categoryRelations = eventIds.length > 0 
+      ? await db
+          .select({
+            eventId: eventToCategory.eventId,
+            categoryId: eventToCategory.categoryId,
+          })
+          .from(eventToCategory)
+          .where(inArray(eventToCategory.eventId, eventIds))
+      : [];
+    
+    // Map venue names from constants and add categories to events
+    const eventsWithDetails = eventsList.map(event => {
+      // Find venue from constants
+      const venue = VENUES.find(v => v.id === event.venueId);
+      
+      // Get category IDs for this event
+      const eventCategoryIds = categoryRelations
+        .filter(rel => rel.eventId === event.id)
+        .map(rel => rel.categoryId);
+      
+      // Map category IDs to full category objects from constants
+      const eventCategories = EVENT_CATEGORIES
+        .filter(cat => eventCategoryIds.includes(cat.id));
+      
+      return {
+        ...event,
+        venueName: venue ? venue.name : 'Unknown venue',
+        categories: eventCategories,
+      };
+    });
+    
+    return { events: eventsWithDetails, count: total };
   } catch (error) {
     console.error('Error fetching events:', error);
     throw new Error('Failed to fetch events');
@@ -113,7 +148,6 @@ export async function getEventById(id: number) {
       description: events.description,
       bannerImage: events.bannerImage,
       venueId: events.venueId,
-      venueName: venues.name,
       startDate: events.startDate,
       endDate: events.endDate,
       status: events.status,
@@ -125,7 +159,6 @@ export async function getEventById(id: number) {
       updatedAt: events.updatedAt,
     })
     .from(events)
-    .leftJoin(venues, eq(events.venueId, venues.id))
     .where(eq(events.id, id))
     .limit(1);
     
@@ -134,21 +167,26 @@ export async function getEventById(id: number) {
     }
     
     // Get event categories with their names
-    const categoriesData = await db
+    const categoryData = await db
       .select({
-        id: eventCategories.id,
-        name: eventCategories.name,
+        categoryId: eventToCategory.categoryId,
       })
       .from(eventToCategory)
-      .innerJoin(
-        eventCategories,
-        eq(eventToCategory.categoryId, eventCategories.id)
-      )
       .where(eq(eventToCategory.eventId, id));
+    
+    // Get venue name from constants
+    const venueName = getVenueNameById(event[0].venueId);
+    
+    // Map category IDs to category objects from constants
+    const categoryIds = categoryData.map(item => item.categoryId);
+    const categories = EVENT_CATEGORIES.filter(cat => 
+      categoryIds.includes(cat.id)
+    );
     
     return {
       ...event[0],
-      categories: categoriesData,
+      venueName,
+      categories,
     };
   } catch (error) {
     console.error('Error fetching event:', error);
@@ -173,7 +211,7 @@ export async function createEvent(formData: EventFormData) {
     const user = session?.user;
 
     // Validate essential data
-    if (!eventData.title || !eventData.startDate || !eventData.endDate) {
+    if (!eventData.title || !eventData.startDate || !eventData.endDate || !eventData.venueId) {
       return { 
         success: false, 
         error: 'Missing required fields' 
@@ -190,15 +228,15 @@ export async function createEvent(formData: EventFormData) {
         const eventToInsert = {
           title: eventData.title,
           description: eventData.description,
-          bannerImage: eventData.bannerImage || null, // Ensure bannerImage is included
+          bannerImage: eventData.bannerImage || null,
           venueId: eventData.venueId,
           startDate: eventData.startDate,
           endDate: eventData.endDate,
           status: eventData.status,
           isPublic: eventData.isPublic,
           isFeatured: eventData.isFeatured,
-          ageRestriction: eventData.ageRestriction,
-          maxTickets: eventData.maxTickets,
+          ageRestriction: eventData.ageRestriction || null,
+          maxTickets: eventData.maxTickets || null,
           createdById: user?.id,
         };
         
@@ -230,6 +268,7 @@ export async function createEvent(formData: EventFormData) {
             }));
             
             await tx.insert(eventToCategory).values(categoryRelations);
+            console.log("Created category relationships:", categoryRelations);
           }
           
           // Log warning if some categories were invalid
@@ -281,7 +320,7 @@ export async function updateEvent(id: number, formData: EventFormData) {
     const { categoryIds, ...eventData } = formData;
     
     // Validate essential data
-    if (!eventData.title || !eventData.startDate || !eventData.endDate) {
+    if (!eventData.title || !eventData.startDate || !eventData.endDate || !eventData.venueId) {
       return { 
         success: false, 
         error: 'Missing required fields' 
@@ -298,15 +337,15 @@ export async function updateEvent(id: number, formData: EventFormData) {
         const eventToUpdate = {
           title: eventData.title,
           description: eventData.description,
-          bannerImage: eventData.bannerImage || null, // Ensure bannerImage is included
+          bannerImage: eventData.bannerImage || null,
           venueId: eventData.venueId,
           startDate: eventData.startDate,
           endDate: eventData.endDate,
           status: eventData.status,
           isPublic: eventData.isPublic,
           isFeatured: eventData.isFeatured,
-          ageRestriction: eventData.ageRestriction,
-          maxTickets: eventData.maxTickets,
+          ageRestriction: eventData.ageRestriction || null,
+          maxTickets: eventData.maxTickets || null,
         };
         
         console.log("Updating event with data:", JSON.stringify(eventToUpdate, null, 2));
@@ -344,6 +383,7 @@ export async function updateEvent(id: number, formData: EventFormData) {
               }));
               
               await tx.insert(eventToCategory).values(categoryRelations);
+              console.log("Updated category relationships:", categoryRelations);
             }
             
             // Log warning if some categories were invalid
@@ -473,39 +513,108 @@ export async function publishEvent(id: number) {
 export async function getUpcomingEvents(limit = 6) {
   try {
     const now = new Date();
-    
-    const upcomingEvents = await db.select()
+    const upcomingEvents = await db
+      .select()
       .from(events)
-      .where(and(
-        eq(events.status, 'published'),
-        gte(events.startDate, now)
-      ))
+      .where(
+        and(
+          eq(events.status, 'published'),
+          gte(events.startDate, now)
+        )
+      )
       .orderBy(asc(events.startDate))
       .limit(limit);
     
-    return upcomingEvents;
+    // Get category data for all events
+    const eventIds = upcomingEvents.map(event => event.id);
+    const categoryRelations = eventIds.length > 0 
+      ? await db
+          .select({
+            eventId: eventToCategory.eventId,
+            categoryId: eventToCategory.categoryId,
+          })
+          .from(eventToCategory)
+          .where(inArray(eventToCategory.eventId, eventIds))
+      : [];
+    
+    // Map venue names from constants and add categories to events
+    const eventsWithDetails = upcomingEvents.map(event => {
+      // Find venue from constants
+      const venue = VENUES.find(v => v.id === event.venueId);
+      
+      // Get category IDs for this event
+      const eventCategoryIds = categoryRelations
+        .filter(rel => rel.eventId === event.id)
+        .map(rel => rel.categoryId);
+      
+      // Map category IDs to full category objects from constants
+      const eventCategories = EVENT_CATEGORIES
+        .filter(cat => eventCategoryIds.includes(cat.id));
+      
+      return {
+        ...event,
+        venueName: venue ? venue.name : 'Unknown venue',
+        categories: eventCategories,
+      };
+    });
+    
+    return eventsWithDetails;
   } catch (error) {
     console.error('Error fetching upcoming events:', error);
-    throw new Error('Failed to fetch upcoming events');
+    return [];
   }
 }
 
 export async function getFeaturedEvents(limit = 3) {
   try {
-    const now = new Date();
-    
-    const featuredEvents = await db.select()
+    const featuredEvents = await db
+      .select()
       .from(events)
-      .where(and(
-        eq(events.status, 'published'),
-        gte(events.startDate, now)
-      ))
-      .orderBy(asc(events.startDate))
+      .where(
+        and(
+          eq(events.status, 'published'),
+          eq(events.isFeatured, true)
+        )
+      )
+      .orderBy(desc(events.startDate))
       .limit(limit);
     
-    return featuredEvents;
+    // Get category data for all events
+    const eventIds = featuredEvents.map(event => event.id);
+    const categoryRelations = eventIds.length > 0 
+      ? await db
+          .select({
+            eventId: eventToCategory.eventId,
+            categoryId: eventToCategory.categoryId,
+          })
+          .from(eventToCategory)
+          .where(inArray(eventToCategory.eventId, eventIds))
+      : [];
+    
+    // Map venue names from constants and add categories to events
+    const eventsWithDetails = featuredEvents.map(event => {
+      // Find venue from constants
+      const venue = VENUES.find(v => v.id === event.venueId);
+      
+      // Get category IDs for this event
+      const eventCategoryIds = categoryRelations
+        .filter(rel => rel.eventId === event.id)
+        .map(rel => rel.categoryId);
+      
+      // Map category IDs to full category objects from constants
+      const eventCategories = EVENT_CATEGORIES
+        .filter(cat => eventCategoryIds.includes(cat.id));
+      
+      return {
+        ...event,
+        venueName: venue ? venue.name : 'Unknown venue',
+        categories: eventCategories,
+      };
+    });
+    
+    return eventsWithDetails;
   } catch (error) {
     console.error('Error fetching featured events:', error);
-    throw new Error('Failed to fetch featured events');
+    return [];
   }
 } 

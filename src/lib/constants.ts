@@ -35,16 +35,18 @@ export const EVENT_CATEGORIES = [
   { id: 8, name: 'Other', description: 'Other types of events' },
 ] as const;
 
-// Venue related constants
-export const VENUE_TYPES = [
-  { id: 1, name: 'Indoor Arena', description: 'Large indoor sports and entertainment venues' },
-  { id: 2, name: 'Outdoor Stadium', description: 'Open-air sports and concert venues' },
-  { id: 3, name: 'Theater', description: 'Theatrical performance venues' },
-  { id: 4, name: 'Concert Hall', description: 'Dedicated music performance venues' },
-  { id: 5, name: 'Conference Center', description: 'Business and professional meeting spaces' },
-  { id: 6, name: 'Exhibition Hall', description: 'Large spaces for exhibitions and trade shows' },
-  { id: 7, name: 'Club', description: 'Smaller entertainment venues' },
-  { id: 8, name: 'Other', description: 'Other types of venues' },
+// Venue constants
+export const VENUES = [
+  { id: 1, name: 'Madison Square Garden', description: 'Iconic indoor arena in New York City' },
+  { id: 2, name: 'O2 Arena', description: 'Major indoor arena in London' },
+  { id: 3, name: 'Staples Center', description: 'Multi-purpose arena in Los Angeles' },
+  { id: 4, name: 'Red Rocks Amphitheatre', description: 'Open-air amphitheatre in Colorado' },
+  { id: 5, name: 'Royal Albert Hall', description: 'Historic concert hall in London' },
+  { id: 6, name: 'Carnegie Hall', description: 'Historic concert venue in New York City' },
+  { id: 7, name: 'Sydney Opera House', description: 'Multi-venue performing arts centre in Sydney' },
+  { id: 8, name: 'Wembley Stadium', description: 'Major stadium in London' },
+  { id: 9, name: 'Mercedes-Benz Arena', description: 'Multi-purpose arena in Berlin' },
+  { id: 10, name: 'Tokyo Dome', description: 'Indoor stadium in Tokyo' },
 ] as const;
 
 // Image upload constants

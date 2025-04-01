@@ -43,9 +43,10 @@ import { cn } from "@/lib/utils";
 import { EventFormSchema } from "@/lib/validators";
 import { createEvent, updateEvent } from "@/lib/actions/event.actions";
 import { venues as venuesSchema } from "@/db/schema";
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUE_TYPES } from "@/lib/constants";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUES } from "@/lib/constants";
 import Image from "next/image";
 import { UploadButton } from "@/lib/uploadthing";
+import { Switch } from "@/components/ui/switch";
 
 type FormData = {
   title: string;
@@ -77,6 +78,9 @@ interface EventFormProps {
     status: 'draft' | 'published' | 'cancelled' | 'completed' | null;
     bannerImage?: string;
     categories: { id: number }[];
+    isFeatured?: boolean;
+    ageRestriction?: number;
+    maxTickets?: number;
   };
 }
 
@@ -104,11 +108,13 @@ export function EventForm({ venues, initialData }: EventFormProps) {
         endDate: new Date(initialData.endDate),
         categoryIds: initialData.categories.map((c) => c.id),
         isPublic: true,
-        isFeatured: false,
+        isFeatured: initialData.isFeatured || false,
+        ageRestriction: initialData.ageRestriction || undefined,
+        maxTickets: initialData.maxTickets || undefined,
       }
     : {
         title: "",
-        description:"",
+        description: "",
         venueId: venues[0]?.id || 0,
         startDate: new Date(),
         endDate: new Date(new Date().setHours(new Date().getHours() + 2)),
@@ -117,6 +123,8 @@ export function EventForm({ venues, initialData }: EventFormProps) {
         bannerImage: "",
         isPublic: true,
         isFeatured: false,
+        ageRestriction: undefined,
+        maxTickets: undefined,
       };
   
   const form = useForm<FormData>({
@@ -274,7 +282,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {VENUE_TYPES.map((venue) => (
+                      {VENUES.map((venue) => (
                         <SelectItem
                           key={venue.id}
                           value={venue.id.toString()}
@@ -285,7 +293,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose a venue for your event. Available venue types: {VENUE_TYPES.map(t => t.name).join(', ')}
+                    Choose a venue for your event
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -343,6 +351,73 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                         ✓ Image uploaded successfully
                       </div>
                     )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isFeatured"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Featured Event</FormLabel>
+                    <FormDescription>
+                      Make this event appear in featured sections
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ageRestriction"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Age Restriction</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Enter minimum age (e.g., 18)"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Minimum age required to attend this event
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="maxTickets"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Maximum Tickets per Person</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Enter maximum tickets per person"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Maximum number of tickets one person can purchase
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
