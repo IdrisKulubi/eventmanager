@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const session = await auth();
   
   if (!session) {
-    redirect('/auth/login?callbackUrl=/dashboard');
+    redirect('/sign-in');
   }
   
   // Get all events

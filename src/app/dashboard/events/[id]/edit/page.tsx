@@ -24,7 +24,7 @@ export default async function EditEventPage({
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/events');
+    redirect('/sign-in ');
   }
 
   const params = await paramsPromise;
@@ -51,7 +51,10 @@ export default async function EditEventPage({
     // Convert null imageUrl to undefined to match the expected type
     const eventData = {
       ...event,
-      bannerImage: event.bannerImage || undefined
+      bannerImage: event.bannerImage || undefined,
+      isFeatured: event.isFeatured ?? undefined,
+      ageRestriction: event.ageRestriction ?? undefined,
+      maxTickets: event.maxTickets ?? undefined
     };
     
     // Add debugging info to ensure we have the correct data

@@ -6,8 +6,8 @@ import { eq, and, inArray, gte, like, desc, asc, count } from 'drizzle-orm';
 import { z } from 'zod';
 import db from '@/db/drizzle';
 import { EventFormSchema } from '../validators';
-import { events, eventToCategory, eventCategories, venues } from '@/db/schema';
-import { getVenueNameById, mapCategoryIdsToCategories } from '@/lib/utils';
+import { events, eventToCategory, eventCategories } from '@/db/schema';
+import { getVenueNameById } from '@/lib/utils';
 import { VENUES, EVENT_CATEGORIES } from '@/lib/constants';
 
 type EventFormData = z.infer<typeof EventFormSchema>;

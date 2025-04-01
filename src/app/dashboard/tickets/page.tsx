@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EditTicketModal } from '../events/[id]/tickets/components/edit-ticket-modal';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export default async function DashboardTicketsPage() {
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/tickets');
+    redirect('/sign-in');
   }
   
   // Get all events and tickets
@@ -166,11 +167,10 @@ export default async function DashboardTicketsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button asChild size="sm" variant="outline">
-                            <Link href={`/dashboard/events/${ticket.eventId}/tickets?edit=${ticket.ticketCategory.id}`}>
-                              Edit
-                            </Link>
-                          </Button>
+                          <EditTicketModal 
+                            ticket={ticket.ticketCategory}
+                            eventId={ticket.eventId}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}

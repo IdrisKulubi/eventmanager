@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -105,8 +104,8 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
             quantity: category.quantity,
             availableFrom: new Date(category.availableFrom),
             availableTo: new Date(category.availableTo),
-            isEarlyBird: category.isEarlyBird,
-            isVIP: category.isVIP,
+            isEarlyBird: category.isEarlyBird ?? false,
+            isVIP: category.isVIP ?? false,
             maxPerOrder: category.maxPerOrder || undefined,
           });
         }

@@ -11,9 +11,9 @@ export const metadata = {
 };
 
 export default async function EditCategoryPage({
-  params,
+  params:paramsPromise,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const session = await auth();
   
@@ -22,6 +22,7 @@ export default async function EditCategoryPage({
     redirect('/sign-in');
   }
   
+  const params = await paramsPromise;
   const categoryId = parseInt(params.id, 10);
   
   if (isNaN(categoryId)) {

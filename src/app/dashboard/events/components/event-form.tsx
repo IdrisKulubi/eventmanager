@@ -343,15 +343,17 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                       )}
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    Upload a banner image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
-                    Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
+                  <div className="space-y-2">
+                    <FormDescription>
+                      Upload a banner image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
+                      Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
+                    </FormDescription>
                     {imageUploadComplete && (
-                      <div className="mt-2 text-green-600">
+                      <p className="text-sm text-green-600">
                         ✓ Image uploaded successfully
-                      </div>
+                      </p>
                     )}
-                  </FormDescription>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

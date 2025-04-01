@@ -159,16 +159,7 @@ export default async function EventTicketsPage({ params }: { params: { id: strin
                   </CardContent>
                   
                   <CardFooter className="pt-0 border-t flex justify-between gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      asChild
-                    >
-                      <Link href={`/dashboard/events/${eventId}/tickets?edit=${category.id}`}>
-                        Edit
-                      </Link>
-                    </Button>
+                   
                     <DeleteTicketCategoryButton
                       categoryId={category.id}
                       eventId={eventId}
