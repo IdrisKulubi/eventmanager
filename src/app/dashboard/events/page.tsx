@@ -92,12 +92,29 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     <div className="container py-10">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Events</h1>
-        <Link href="/dashboard/events/create">
-          <Button>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create Event
+        <div className="flex space-x-4">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/tickets">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-4 w-4 mr-2" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor" 
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+              Ticket Management
+            </Link>
           </Button>
-        </Link>
+          <Button asChild>
+            <Link href="/dashboard/events/create">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Create Event
+            </Link>
+          </Button>
+        </div>
       </div>
       
       <Suspense fallback={<div>Loading stats...</div>}>

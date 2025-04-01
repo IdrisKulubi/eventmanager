@@ -51,9 +51,9 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Event Details */}
-          <div className="lg:col-span-2">
+        <div className="lg:col-span-2">
             <EventDetails
               startDate={event.startDate.toISOString()}
               endDate={event.endDate.toISOString()}
@@ -63,8 +63,8 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               maxTickets={event.maxTickets || undefined}
               description={event.description || ""}
             />
-          </div>
-          
+        </div>
+        
           {/* Ticket Sidebar */}
           <div className="lg:col-span-1">
             <TicketSidebar

@@ -518,8 +518,8 @@ export async function getUpcomingEvents(limit = 6) {
       .from(events)
       .where(
         and(
-          eq(events.status, 'published'),
-          gte(events.startDate, now)
+        eq(events.status, 'published'),
+        gte(events.startDate, now)
         )
       )
       .orderBy(asc(events.startDate))
@@ -572,7 +572,7 @@ export async function getFeaturedEvents(limit = 3) {
       .from(events)
       .where(
         and(
-          eq(events.status, 'published'),
+        eq(events.status, 'published'),
           eq(events.isFeatured, true)
         )
       )
