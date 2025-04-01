@@ -8,15 +8,41 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: Date | string) {
-  if (!date) return ""
-  
-  return format(new Date(date), "MMM d, yyyy")
+  const dateObject = typeof date === "string" ? new Date(date) : date;
+  return format(dateObject, "MMMM do, yyyy");
 }
 
 export function formatDateTime(date: Date | string) {
-  if (!date) return ""
+  if (!date) return "";
   
-  return format(new Date(date), "MMM d, yyyy 'at' h:mm a")
+  return format(new Date(date), "MMM d, yyyy 'at' h:mm a");
+}
+
+export function formatTime(date: Date | string) {
+  const dateObject = typeof date === "string" ? new Date(date) : date;
+  return format(dateObject, "h:mm a");
+}
+
+export function formatCurrency(amount: number, options = {}): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'KES',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    ...options
+  }).format(amount);
+}
+
+export function calculateQrCodeDimensions(maxWidth: number): {
+  width: number;
+  height: number;
+} {
+  const baseSize = 288;
+  const size = Math.min(baseSize, maxWidth);
+  return {
+    width: size,
+    height: size,
+  };
 }
 
 /**

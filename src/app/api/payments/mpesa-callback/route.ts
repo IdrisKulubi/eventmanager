@@ -17,6 +17,9 @@ const MPESA_WHITELIST_IPS = [
   '196.201.212.136',
   '196.201.212.74',
   '196.201.212.69',
+  // Include localhost/testing IPs if needed
+  '127.0.0.1',
+  '::1',
 ];
 
 // Secret key from .env to verify callback requests
@@ -27,21 +30,46 @@ const CALLBACK_SECRET_KEY = process.env.MPESA_CALLBACK_SECRET_KEY;
  */
 export async function POST(request: NextRequest) {
   try {
-    // Extract and check client IP for whitelisting (in production)
+    // Extract and check client IP for whitelisting
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
+    const ipToCheck = clientIp?.split(',')[0].trim();
     
-    // In production, uncomment this code to validate IP addresses
-    // if (!MPESA_WHITELIST_IPS.includes(clientIp)) {
-    //   console.log(`Blocked callback from non-whitelisted IP: ${clientIp}`);
-    //   return NextResponse.json(
-    //     { ResultCode: 1, ResultDesc: "IP not authorized" },
-    //     { status: 403 }
-    //   );
-    // }
+    // Skip IP validation in development environment
+    if (process.env.NODE_ENV === 'production') {
+      if (!ipToCheck || !MPESA_WHITELIST_IPS.includes(ipToCheck)) {
+        console.error(`Blocked callback from non-whitelisted IP: ${ipToCheck}`);
+        return NextResponse.json(
+          { ResultCode: 1, ResultDesc: "IP not authorized" },
+          { status: 403 }
+        );
+      }
+    }
+    
+    // Validate the URL path secret key if configured
+    const { pathname } = new URL(request.url);
+    const pathParts = pathname.split('/');
+    const securityKey = pathParts[pathParts.length - 1];
+    
+    if (CALLBACK_SECRET_KEY && securityKey !== CALLBACK_SECRET_KEY) {
+      console.error(`Invalid security key in callback URL: ${securityKey}`);
+      return NextResponse.json(
+        { ResultCode: 1, ResultDesc: "Invalid security key" },
+        { status: 403 }
+      );
+    }
     
     // Parse the callback data
     const callbackData = await request.json();
     console.log("Received M-PESA callback:", JSON.stringify(callbackData, null, 2));
+
+    // Validate callback data structure
+    if (!callbackData?.Body?.stkCallback) {
+      console.error("Invalid callback data structure");
+      return NextResponse.json(
+        { ResultCode: 1, ResultDesc: "Invalid callback data structure" },
+        { status: 400 }
+      );
+    }
 
     // Process the callback
     const result = await processMpesaCallback(callbackData);
@@ -56,6 +84,7 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } else {
+      console.error("Failed to process callback:", result.error);
       return NextResponse.json(
         {
           ResultCode: 1,

@@ -57,6 +57,26 @@ async function checkTicketManagementPermission() {
 }
 
 /**
+ * Get all ticket categories with related data
+ */
+export async function getAllTicketCategories() {
+  try {
+    const result = await db.select({
+      ticketCategory: ticketCategories,
+      eventTitle: events.title,
+    })
+    .from(ticketCategories)
+    .leftJoin(events, eq(ticketCategories.eventId, events.id))
+    .orderBy(desc(ticketCategories.createdAt));
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching all ticket categories:', error);
+    throw new Error('Failed to fetch ticket categories');
+  }
+}
+
+/**
  * Get a single ticket by ID
  */
 export async function getTicketById(id: number) {
@@ -94,7 +114,7 @@ export async function getEventTickets({
   if (!hasPermission) {
     throw new Error('Unauthorized: You do not have permission to view tickets');
   }
-
+  
   try {
     const offset = (page - 1) * limit;
     
@@ -233,7 +253,7 @@ export async function validateTicket(ticketId: number) {
   if (!hasPermission) {
     throw new Error('Unauthorized: You do not have permission to validate tickets');
   }
-
+  
   try {
     // Get the ticket
     const ticket = await getTicketById(ticketId);
@@ -244,7 +264,7 @@ export async function validateTicket(ticketId: number) {
     
     // Check if ticket is already used
     if (ticket.isCheckedIn) {
-      return { 
+      return {
         valid: false, 
         message: 'Ticket already used', 
         checkedInAt: ticket.checkedInAt 
@@ -279,7 +299,7 @@ export async function validateTicket(ticketId: number) {
     //   return { valid: false, message: 'Event has not started yet' };
     // }
     
-    return { 
+    return {
       valid: true, 
       message: 'Ticket is valid',
       ticket: {
@@ -509,5 +529,67 @@ export async function getAvailableTickets(eventId: number) {
   } catch (error) {
     console.error('Error fetching available tickets:', error);
     throw new Error('Failed to fetch available tickets');
+  }
+}
+
+/**
+ * Update a ticket category
+ */
+export async function updateTicketCategory({
+  id,
+  name,
+  description,
+  price,
+  quantity,
+  isVIP,
+  isEarlyBird
+}: {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  quantity: number;
+  isVIP?: boolean;
+  isEarlyBird?: boolean;
+}) {
+  const hasPermission = await checkTicketManagementPermission();
+  if (!hasPermission) {
+    throw new Error('Unauthorized: You do not have permission to update ticket categories');
+  }
+
+  try {
+    // Get the current category to get the eventId
+    const currentCategory = await db.select()
+      .from(ticketCategories)
+      .where(eq(ticketCategories.id, id))
+      .limit(1);
+    
+    if (!currentCategory.length) {
+      throw new Error('Ticket category not found');
+    }
+    
+    const eventId = currentCategory[0].eventId;
+    
+    // Update the ticket category
+    await db.update(ticketCategories)
+      .set({
+        name,
+        description,
+        price: price.toString(), // Convert price to string to match DB schema's expected type
+        quantity,
+        isVIP: isVIP || false,
+        isEarlyBird: isEarlyBird || false,
+        updatedAt: new Date()
+      })
+      .where(eq(ticketCategories.id, id));
+    
+    // Revalidate paths
+    revalidatePath(`/dashboard/events/${eventId}`);
+    revalidatePath(`/dashboard/events/${eventId}/tickets`);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating ticket category:', error);
+    throw new Error('Failed to update ticket category');
   }
 } 
