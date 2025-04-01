@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -43,8 +43,10 @@ import { cn } from "@/lib/utils";
 import { EventFormSchema } from "@/lib/validators";
 import { createEvent, updateEvent } from "@/lib/actions/event.actions";
 import { venues as venuesSchema } from "@/db/schema";
-import { ImageUploadField } from "@/components/ui/image-upload-field";
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUE_TYPES } from "@/lib/constants";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUES } from "@/lib/constants";
+import Image from "next/image";
+import { UploadButton } from "@/lib/uploadthing";
+import { Switch } from "@/components/ui/switch";
 
 type FormData = {
   title: string;
@@ -55,7 +57,6 @@ type FormData = {
   categoryIds?: number[];
   status: 'draft' | 'published' | 'cancelled' | 'completed';
   bannerImage?: string;
-  imageUrl?: string;
   isPublic: boolean;
   isFeatured: boolean;
   ageRestriction?: number;
@@ -75,14 +76,26 @@ interface EventFormProps {
     startDate: string | Date;
     endDate: string | Date;
     status: 'draft' | 'published' | 'cancelled' | 'completed' | null;
-    imageUrl?: string;
+    bannerImage?: string;
     categories: { id: number }[];
+    isFeatured?: boolean;
+    ageRestriction?: number;
+    maxTickets?: number;
   };
+}
+
+// Add type for upload response
+interface UploadResponse {
+  url: string;
+  key: string;
+  name: string;
+  size: number;
 }
 
 export function EventForm({ venues, initialData }: EventFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUploadComplete, setImageUploadComplete] = useState(false);
   
   // Parse initial data for the form
   const defaultValues = initialData
@@ -95,19 +108,23 @@ export function EventForm({ venues, initialData }: EventFormProps) {
         endDate: new Date(initialData.endDate),
         categoryIds: initialData.categories.map((c) => c.id),
         isPublic: true,
-        isFeatured: false,
+        isFeatured: initialData.isFeatured || false,
+        ageRestriction: initialData.ageRestriction || undefined,
+        maxTickets: initialData.maxTickets || undefined,
       }
     : {
         title: "",
-        description:"",
+        description: "",
         venueId: venues[0]?.id || 0,
         startDate: new Date(),
         endDate: new Date(new Date().setHours(new Date().getHours() + 2)),
         categoryIds: [],
         status: "draft" as const,
-        imageUrl: "",
+        bannerImage: "",
         isPublic: true,
         isFeatured: false,
+        ageRestriction: undefined,
+        maxTickets: undefined,
       };
   
   const form = useForm<FormData>({
@@ -115,22 +132,49 @@ export function EventForm({ venues, initialData }: EventFormProps) {
     defaultValues,
   });
   
+  // Watch the bannerImage field for preview
+  const bannerImageValue = form.watch("bannerImage");
+  
+  // Update image upload status based on bannerImage value
+  useEffect(() => {
+    console.log("Banner image changed:", bannerImageValue);
+    if (bannerImageValue) {
+      setImageUploadComplete(true);
+    }
+  }, [bannerImageValue]);
+  
   // Track if the form has been modified
   const isDirty = form.formState.isDirty;
+
+  // Custom handler for image upload completion
+  const handleImageUpload = (res: UploadResponse[]) => {
+    console.log("Image upload complete, received URL:", res[0].url);
+    form.setValue("bannerImage", res[0].url);
+    setImageUploadComplete(true);
+    toast.success("Image uploaded successfully");
+  };
   
   async function onSubmit(data: FormData) {
     try {
+      console.log("Form submission data:", JSON.stringify(data, null, 2));
+      console.log("Banner image URL from form:", data.bannerImage);
       setIsSubmitting(true);
       
       if (initialData) {
-        // Update existing event with explicit parsing of values
-        const result = await updateEvent(initialData.id, {
+        // Ensure bannerImage is explicitly included
+        const updateData = {
           ...data,
           venueId: Number(data.venueId),
           startDate: new Date(data.startDate),
           endDate: new Date(data.endDate),
           categoryIds: data.categoryIds || [],
-        });
+          bannerImage: data.bannerImage || undefined // Use undefined instead of null
+        };
+        
+        console.log("Update data being sent:", JSON.stringify(updateData, null, 2));
+        
+        // Update existing event
+        const result = await updateEvent(initialData.id, updateData);
         
         if (result && result.success) {
           toast.success("Event updated successfully");
@@ -143,8 +187,20 @@ export function EventForm({ venues, initialData }: EventFormProps) {
           throw new Error("Failed to update event");
         }
       } else {
+        // Ensure bannerImage is explicitly included
+        const createData = {
+          ...data,
+          venueId: Number(data.venueId),
+          startDate: new Date(data.startDate),
+          endDate: new Date(data.endDate),
+          categoryIds: data.categoryIds || [],
+          bannerImage: data.bannerImage || undefined // Use undefined instead of null
+        };
+        
+        console.log("Create data being sent:", JSON.stringify(createData, null, 2));
+        
         // Create new event
-        const result = await createEvent(data);
+        const result = await createEvent(createData);
         
         if (result && result.success) {
           toast.success("Event created successfully");
@@ -226,7 +282,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {VENUE_TYPES.map((venue) => (
+                      {VENUES.map((venue) => (
                         <SelectItem
                           key={venue.id}
                           value={venue.id.toString()}
@@ -237,7 +293,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Choose a venue for your event. Available venue types: {VENUE_TYPES.map(t => t.name).join(', ')}
+                    Choose a venue for your event
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -246,21 +302,122 @@ export function EventForm({ venues, initialData }: EventFormProps) {
 
             <FormField
               control={form.control}
-              name="imageUrl"
+              name="bannerImage"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Event Banner</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      {bannerImageValue ? (
+                        <div className="relative w-full h-48">
+                          <Image
+                            src={bannerImageValue}
+                            alt="Event banner"
+                            fill
+                            className="object-cover rounded-lg"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              form.setValue("bannerImage", undefined);
+                              setImageUploadComplete(false);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed rounded-lg p-4 text-center">
+                          <UploadButton
+                            endpoint="imageUploader"
+                            onClientUploadComplete={handleImageUpload}
+                            onUploadError={(error: Error) => {
+                              toast.error(`Upload failed: ${error.message}`);
+                            }}
+                            className="ut-button:bg-primary ut-button:text-white ut-button:hover:bg-primary/90"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Upload a banner image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
+                    Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
+                    {imageUploadComplete && (
+                      <div className="mt-2 text-green-600">
+                        ✓ Image uploaded successfully
+                      </div>
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isFeatured"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Featured Event</FormLabel>
+                    <FormDescription>
+                      Make this event appear in featured sections
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ageRestriction"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Event Poster</FormLabel>
+                  <FormLabel>Age Restriction</FormLabel>
                   <FormControl>
-                    <ImageUploadField
-                      value={field.value}
-                      onChange={field.onChange}
-                      label="Upload Event Poster"
-                      error={form.formState.errors.imageUrl?.message}
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="Enter minimum age (e.g., 18)"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                     />
                   </FormControl>
                   <FormDescription>
-                    Upload a poster image for your event (max {MAX_IMAGE_SIZE / (1024 * 1024)}MB).
-                    Supported formats: {ALLOWED_IMAGE_TYPES.join(', ').replace(/image\//g, '')}.
+                    Minimum age required to attend this event
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="maxTickets"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Maximum Tickets per Person</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      placeholder="Enter maximum tickets per person"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Maximum number of tickets one person can purchase
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -489,7 +646,9 @@ export function EventForm({ venues, initialData }: EventFormProps) {
               ? "Saving..." 
               : initialData 
                 ? "Update Event" 
-                : "Create Event"
+                : bannerImageValue
+                  ? "Create Event"
+                  : "Create Event (No Image)"
             }
           </Button>
         </div>

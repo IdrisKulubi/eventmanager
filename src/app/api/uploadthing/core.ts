@@ -1,5 +1,8 @@
 import { createUploadthing, type FileRouter } from "uploadthing/next";
 import { auth } from "@/auth";
+import db from "@/db/drizzle";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { UploadThingError } from "uploadthing/server";
 
 const f = createUploadthing();
@@ -7,35 +10,30 @@ const f = createUploadthing();
 // FileRouter for your app, can contain multiple FileRoutes
 export const ourFileRouter = {
   // Define as many FileRoutes as you like, each with a unique routeSlug
-  eventImageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
+  imageUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 1 } })
     // Set permissions and file types for this FileRoute
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .middleware(async ({ req }) => {
-      // This code runs on your server before upload
+    .middleware(async () => {
       const session = await auth();
+      if (!session?.user?.id) throw new Error("Unauthorized");
+      if (!session) throw new UploadThingError('Unauthorized')
 
-      // If you throw, the user will not be able to upload
-      if (!session) throw new UploadThingError("Unauthorized");
 
-      // Only allow admin and manager roles to upload
-      if (session.user.role !== 'admin' && session.user.role !== 'manager') {
-        throw new UploadThingError("Unauthorized: Insufficient permissions");
-      }
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, session.user.id),
+      });
 
-      // Whatever is returned here is accessible in onUploadComplete as `metadata`
-      return { userId: session.user.id, role: session.user.role };
+      if (!user) throw new Error("User not found");
+
+      return { userId: user.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
       // This code RUNS ON YOUR SERVER after upload
       console.log("Upload complete for userId:", metadata.userId);
-      console.log("file url", file.url);
+      console.log("file url:", file.url);
 
       // Return the file URL and any additional metadata
-      return { 
-        uploadedBy: metadata.userId,
-        fileUrl: file.url,
-        fileKey: file.key
-      };
+      return { fileUrl: file.url };
     }),
 } satisfies FileRouter;
 

@@ -140,3 +140,33 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Sidebar styles */
+.bg-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.text-primary {
+  color: var(--primary);
+}
+
+.dark .text-primary-light {
+  color: var(--primary-foreground);
+}
+
+.bg-primary-50 {
+  background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+/* Mobile optimizations */
+@media (max-width: 1023px) {
+  .main-content {
+    width: 100%;
+  }
+}
+
+/* Transitions for sidebar */
+.sidebar-transition {
+  transition: width 0.3s ease, transform 0.3s ease;
+}

@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EllipsisVerticalIcon, PencilIcon, TrashIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { EllipsisVerticalIcon, PencilIcon, TrashIcon, EyeIcon, TicketIcon } from "@heroicons/react/24/outline";
 import { publishEvent, deleteEvent } from "@/lib/actions/event.actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -28,6 +28,7 @@ export type Event = {
   venueName: string;
   status: string;
   categories: { id: number; name: string }[];
+  bannerImage?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
 };
@@ -92,6 +93,21 @@ function ActionCell({ event }: { event: Event }) {
           <Link href={`/dashboard/events/${event.id}/edit`} className="flex items-center cursor-pointer">
             <PencilIcon className="mr-2 h-4 w-4" />
             Edit
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/dashboard/events/${event.id}/tickets`} className="flex items-center cursor-pointer">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="mr-2 h-4 w-4" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            Tickets
           </Link>
         </DropdownMenuItem>
         {event.status === "draft" && (

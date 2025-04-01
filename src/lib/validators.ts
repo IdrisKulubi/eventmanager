@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE } from "@/lib/constants";
 
 // User schemas
 export const LoginFormSchema = z.object({
@@ -49,7 +48,7 @@ export const EventFormSchema = z.object({
   venueId: z.number().int().positive("Venue is required"),
   categoryIds: z.array(z.number().int().positive()).optional(),
   status: z.enum(["draft", "published", "cancelled", "completed"]),
-  imageUrl: z.string().url("Image URL must be a valid URL").optional(),
+  bannerImage: z.string().optional(),
   isPublic: z.boolean().default(true),
   isFeatured: z.boolean().default(false),
   ageRestriction: z.number().int().nonnegative().optional(),

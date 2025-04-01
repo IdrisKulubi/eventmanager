@@ -27,10 +27,14 @@ export function UploadButton({
       endpoint="eventImageUploader"
       onUploadBegin={() => {
         setIsUploading(true);
+        console.log("Starting upload...");
       }}
       onClientUploadComplete={(res) => {
         setIsUploading(false);
+        console.log("Upload completed on client side, result:", JSON.stringify(res, null, 2));
         if (res?.[0]) {
+          console.log("File URL from uploadthing:", res[0].fileUrl);
+          console.log("File key from uploadthing:", res[0].fileKey);
           onUploadComplete({
             fileUrl: res[0].fileUrl,
             fileKey: res[0].fileKey,
@@ -40,6 +44,7 @@ export function UploadButton({
       }}
       onUploadError={(error: Error) => {
         setIsUploading(false);
+        console.error("Upload error:", error);
         toast.error(`Upload failed: ${error.message}`);
         onUploadError?.(error);
       }}

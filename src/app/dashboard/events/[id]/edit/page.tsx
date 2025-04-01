@@ -51,7 +51,7 @@ export default async function EditEventPage({
     // Convert null imageUrl to undefined to match the expected type
     const eventData = {
       ...event,
-      imageUrl: event.imageUrl || undefined
+      bannerImage: event.bannerImage || undefined
     };
     
     // Add debugging info to ensure we have the correct data
