@@ -99,6 +99,12 @@ export interface MonthlySalesTargets {
   };
 }
 
+// Add the MonthlyTarget interface
+export interface MonthlyTarget {
+  month: number; // 1-12 for January-December
+  target: number;
+}
+
 // Date range for filtering
 export interface DateRange {
   startDate?: Date;

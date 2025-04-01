@@ -323,7 +323,7 @@ export async function checkInTicket(ticketId: number) {
   if (!hasPermission) {
     throw new Error('Unauthorized: You do not have permission to check in tickets');
   }
-
+  
   try {
     // Validate the ticket first
     const validation = await validateTicket(ticketId);
@@ -396,8 +396,8 @@ export async function createOrder(orderData: OrderCreationParams) {
       createdTickets.push(ticket);
     }
     
-    return { 
-      success: true, 
+    return {
+      success: true,
       orderId: newOrder.id,
       orderNumber: newOrder.orderNumber,
       ticketIds: createdTickets.map(t => t.id)
@@ -473,8 +473,8 @@ export async function getAvailableTickets(eventId: number) {
     const resultsPromise = db
       .select({
         category: ticketCategories,
-      })
-      .from(ticketCategories)
+    })
+    .from(ticketCategories)
       .where(eq(ticketCategories.eventId, eventId));
     
     // Count tickets separately

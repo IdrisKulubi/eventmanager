@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import {
   getSalesSummary,
   getSalesByCategory,
@@ -20,11 +21,14 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
   BarChart,
   PieChart
 } from "@/components/charts";
+import { MonthlyTargetsCard } from '@/components/analytics/monthly-targets-card';
+import { HelpCircle } from "lucide-react";
 
 // Define user type
 interface User {
@@ -42,25 +46,47 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-export default async function AnalyticsPage() {
-  // Check authorization
-  const session = await auth();
-  
-  if (!session) {
-    redirect('/sign-in');
-  }
+// Skeleton for summary cards
+function SummaryCardSkeleton() {
+  return (
+    <Card className="col-span-1">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-4 w-4 rounded-full" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-8 w-20 mb-2" />
+        <Skeleton className="h-4 w-32" />
+      </CardContent>
+    </Card>
+  );
+}
 
-  // Verify admin or manager role
-  const user = session.user as User;
-  if (user.role !== 'admin' && user.role !== 'manager') {
-    return (
-      <div className="container py-10">
-        <h1 className="text-3xl font-bold mb-4">Access Denied</h1>
-        <p>You don&apos;t have permission to access this page.</p>
-      </div>
-    );
-  }
-  
+// Empty state component
+function EmptyState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-10 text-center px-4 border rounded-md bg-muted/20">
+      <HelpCircle className="h-12 w-12 text-muted-foreground mb-3" />
+      <h3 className="text-lg font-medium mb-1">{title}</h3>
+      <p className="text-muted-foreground max-w-md">{message}</p>
+    </div>
+  );
+}
+
+// Loading component for summary cards
+function SummaryCardsLoading() {
+  return (
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <SummaryCardSkeleton />
+      <SummaryCardSkeleton />
+      <SummaryCardSkeleton />
+      <SummaryCardSkeleton />
+    </div>
+  );
+}
+
+// Suspense-wrapped analytics content component
+async function AnalyticsContent() {
   // Fetch analytics data
   const salesSummary = await getSalesSummary();
   const salesByCategory = await getSalesByCategory();
@@ -109,17 +135,15 @@ export default async function AnalyticsPage() {
     actual: month.actual
   }));
 
-  return (
-    <div className="container py-10 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between md:space-y-0">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Track ticket sales, revenue, and event performance.
-          </p>
-        </div>
-      </div>
+  // Check if data is empty
+  const hasSalesCategories = salesByCategory.categories.length > 0;
+  const hasAttendanceData = attendanceData.events.length > 0;
+  const hasRevenueData = revenueAnalytics.timeSeriesData.length > 0;
+  const hasCapacityData = capacityData.venues.length > 0;
+  const hasPaymentData = paymentMethods.methods.length > 0;
 
+  return (
+    <>
       {/* Sales summary cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <Card className="col-span-1">
@@ -241,13 +265,20 @@ export default async function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PieChart
-                  data={categoryChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={80}
-                  height={280}
-                />
+                {hasSalesCategories ? (
+                  <PieChart
+                    data={categoryChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={80}
+                    height={280}
+                  />
+                ) : (
+                  <EmptyState 
+                    title="No sales data available" 
+                    message="There are no ticket sales or categories to display. Start selling tickets to see your sales distribution."
+                  />
+                )}
               </CardContent>
             </Card>
             
@@ -259,16 +290,30 @@ export default async function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <BarChart
-                  data={monthlySalesChartData}
-                  categories={["target", "actual"]}
-                  colors={["#3B82F6", "#10B981"]}
-                  index="name"
-                  height={280}
-                />
+                {monthlySalesChartData.some(data => data.actual > 0 || data.target > 0) ? (
+                  <BarChart
+                    data={monthlySalesChartData}
+                    categories={["target", "actual"]}
+                    colors={["#3B82F6", "#10B981"]}
+                    index="name"
+                    height={280}
+                  />
+                ) : (
+                  <EmptyState 
+                    title="No sales targets data" 
+                    message="Set monthly sales targets to track your performance against actual sales."
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
+          
+          {/* Monthly Targets Card */}
+          <MonthlyTargetsCard
+            months={monthlySalesTargets.months}
+            yearTotal={monthlySalesTargets.yearTotal}
+            selectedYear={new Date().getFullYear()}
+          />
           
           <Card>
             <CardHeader>
@@ -278,31 +323,38 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-4 p-4 text-xs font-medium">
-                  <div>Category</div>
-                  <div className="text-right">Tickets Sold</div>
-                  <div className="text-right">Revenue</div>
-                  <div className="text-right">% of Total</div>
-                </div>
-                <div className="divide-y">
-                  {salesByCategory.categories.map((category, i) => (
-                    <div key={i} className="grid grid-cols-4 p-4 text-sm">
-                      <div>{category.categoryName}</div>
-                      <div className="text-right">{category.ticketsSold}</div>
-                      <div className="text-right">{formatCurrency(category.revenue)}</div>
-                      <div className="text-right">
-                        <Badge variant={
-                          category.percentageOfTotal > 30 ? "default" :
-                          category.percentageOfTotal > 15 ? "secondary" : "outline"
-                        }>
-                          {Math.round(category.percentageOfTotal)}%
-                        </Badge>
+              {hasSalesCategories ? (
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-4 p-4 text-xs font-medium">
+                    <div>Category</div>
+                    <div className="text-right">Tickets Sold</div>
+                    <div className="text-right">Revenue</div>
+                    <div className="text-right">% of Total</div>
+                  </div>
+                  <div className="divide-y">
+                    {salesByCategory.categories.map((category, i) => (
+                      <div key={i} className="grid grid-cols-4 p-4 text-sm">
+                        <div>{category.categoryName}</div>
+                        <div className="text-right">{category.ticketsSold}</div>
+                        <div className="text-right">{formatCurrency(category.revenue)}</div>
+                        <div className="text-right">
+                          <Badge variant={
+                            category.percentageOfTotal > 30 ? "default" :
+                            category.percentageOfTotal > 15 ? "secondary" : "outline"
+                          }>
+                            {Math.round(category.percentageOfTotal)}%
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <EmptyState 
+                  title="No category sales data" 
+                  message="There are no ticket sales to display. Start selling tickets to see your sales data by category."
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -317,13 +369,20 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <BarChart
-                data={attendanceChartData}
-                categories={["sold", "checkedIn"]}
-                colors={["#3B82F6", "#10B981"]}
-                index="name"
-                height={350}
-              />
+              {hasAttendanceData ? (
+                <BarChart
+                  data={attendanceChartData}
+                  categories={["sold", "checkedIn"]}
+                  colors={["#3B82F6", "#10B981"]}
+                  index="name"
+                  height={350}
+                />
+              ) : (
+                <EmptyState 
+                  title="No attendance data available" 
+                  message="There are no events with attendance data to display. Check-in attendees at your events to see attendance statistics."
+                />
+              )}
             </CardContent>
           </Card>
           
@@ -335,33 +394,40 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-5 p-4 text-xs font-medium">
-                  <div>Event</div>
-                  <div className="text-right">Total Tickets</div>
-                  <div className="text-right">Sold</div>
-                  <div className="text-right">Checked In</div>
-                  <div className="text-right">Attendance Rate</div>
-                </div>
-                <div className="divide-y">
-                  {attendanceData.events.map((event, i) => (
-                    <div key={i} className="grid grid-cols-5 p-4 text-sm">
-                      <div className="truncate">{event.eventTitle}</div>
-                      <div className="text-right">{event.totalTickets}</div>
-                      <div className="text-right">{event.soldTickets}</div>
-                      <div className="text-right">{event.checkedInTickets}</div>
-                      <div className="text-right">
-                        <Badge variant={
-                          event.attendanceRate > 80 ? "default" :
-                          event.attendanceRate > 50 ? "secondary" : "destructive"
-                        }>
-                          {Math.round(event.attendanceRate)}%
-                        </Badge>
+              {hasAttendanceData ? (
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-5 p-4 text-xs font-medium">
+                    <div>Event</div>
+                    <div className="text-right">Total Tickets</div>
+                    <div className="text-right">Sold</div>
+                    <div className="text-right">Checked In</div>
+                    <div className="text-right">Attendance Rate</div>
+                  </div>
+                  <div className="divide-y">
+                    {attendanceData.events.map((event, i) => (
+                      <div key={i} className="grid grid-cols-5 p-4 text-sm">
+                        <div className="truncate">{event.eventTitle}</div>
+                        <div className="text-right">{event.totalTickets}</div>
+                        <div className="text-right">{event.soldTickets}</div>
+                        <div className="text-right">{event.checkedInTickets}</div>
+                        <div className="text-right">
+                          <Badge variant={
+                            event.attendanceRate > 80 ? "default" :
+                            event.attendanceRate > 50 ? "secondary" : "destructive"
+                          }>
+                            {Math.round(event.attendanceRate)}%
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <EmptyState 
+                  title="No attendance details" 
+                  message="There are no events with attendance data to display. Check-in attendees at your events to see attendance details."
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -372,19 +438,26 @@ export default async function AnalyticsPage() {
             <CardHeader>
               <CardTitle>Revenue Trends</CardTitle>
               <CardDescription>
-                Revenue over time {revenueAnalytics.growthRate > 0 ? 
+                Revenue over time {hasRevenueData && revenueAnalytics.growthRate > 0 ? 
                   `(${Math.round(revenueAnalytics.growthRate)}% growth)` : 
-                  `(${Math.abs(Math.round(revenueAnalytics.growthRate))}% decline)`}
+                  hasRevenueData ? `(${Math.abs(Math.round(revenueAnalytics.growthRate))}% decline)` : ''}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <LineChart
-                data={revenueChartData}
-                categories={["revenue"]}
-                colors={["#10B981"]}
-                index="name"
-                height={350}
-              />
+              {hasRevenueData ? (
+                <LineChart
+                  data={revenueChartData}
+                  categories={["revenue"]}
+                  colors={["#10B981"]}
+                  index="name"
+                  height={350}
+                />
+              ) : (
+                <EmptyState 
+                  title="No revenue data available" 
+                  message="There is no revenue data to display. Complete orders will appear in your revenue trends."
+                />
+              )}
             </CardContent>
           </Card>
           
@@ -397,13 +470,20 @@ export default async function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center items-center">
-                <PieChart
-                  data={paymentChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  height={280}
-                  colors={["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981"]}
-                />
+                {hasPaymentData ? (
+                  <PieChart
+                    data={paymentChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    height={280}
+                    colors={["#3B82F6", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981"]}
+                  />
+                ) : (
+                  <EmptyState 
+                    title="No payment data" 
+                    message="There is no payment method data to display. Completed payments will appear in this chart."
+                  />
+                )}
               </CardContent>
             </Card>
             
@@ -415,24 +495,31 @@ export default async function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <div className="grid grid-cols-4 p-4 text-xs font-medium">
-                    <div>Method</div>
-                    <div className="text-right">Count</div>
-                    <div className="text-right">Total</div>
-                    <div className="text-right">Percentage</div>
+                {hasPaymentData ? (
+                  <div className="rounded-md border">
+                    <div className="grid grid-cols-4 p-4 text-xs font-medium">
+                      <div>Method</div>
+                      <div className="text-right">Count</div>
+                      <div className="text-right">Total</div>
+                      <div className="text-right">Percentage</div>
+                    </div>
+                    <div className="divide-y">
+                      {paymentMethods.methods.map((method, i) => (
+                        <div key={i} className="grid grid-cols-4 p-4 text-sm">
+                          <div>{method.method}</div>
+                          <div className="text-right">{method.count}</div>
+                          <div className="text-right">{formatCurrency(method.total)}</div>
+                          <div className="text-right">{Math.round(method.percentage)}%</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="divide-y">
-                    {paymentMethods.methods.map((method, i) => (
-                      <div key={i} className="grid grid-cols-4 p-4 text-sm">
-                        <div>{method.method}</div>
-                        <div className="text-right">{method.count}</div>
-                        <div className="text-right">{formatCurrency(method.total)}</div>
-                        <div className="text-right">{Math.round(method.percentage)}%</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ) : (
+                  <EmptyState 
+                    title="No payment details" 
+                    message="There is no payment data to display. Completed payments will appear in this breakdown."
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
@@ -448,13 +535,20 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <BarChart
-                data={capacityChartData}
-                categories={["capacity", "sold"]}
-                colors={["#3B82F6", "#10B981"]}
-                index="name"
-                height={350}
-              />
+              {hasCapacityData ? (
+                <BarChart
+                  data={capacityChartData}
+                  categories={["capacity", "sold"]}
+                  colors={["#3B82F6", "#10B981"]}
+                  index="name"
+                  height={350}
+                />
+              ) : (
+                <EmptyState 
+                  title="No capacity data available" 
+                  message="There are no events with venue capacity data to display. Create events with venues to see capacity utilization."
+                />
+              )}
             </CardContent>
           </Card>
           
@@ -466,35 +560,79 @@ export default async function AnalyticsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <div className="grid grid-cols-4 p-4 text-xs font-medium">
-                  <div>Event</div>
-                  <div className="text-right">Venue Capacity</div>
-                  <div className="text-right">Tickets Sold</div>
-                  <div className="text-right">Utilization Rate</div>
-                </div>
-                <div className="divide-y">
-                  {capacityData.venues.map((venue, i) => (
-                    <div key={i} className="grid grid-cols-4 p-4 text-sm">
-                      <div className="truncate">{venue.eventTitle}</div>
-                      <div className="text-right">{venue.venueCapacity}</div>
-                      <div className="text-right">{venue.ticketsSold}</div>
-                      <div className="text-right">
-                        <Badge variant={
-                          venue.utilizationRate > 90 ? "default" :
-                          venue.utilizationRate > 60 ? "secondary" : "outline"
-                        }>
-                          {Math.round(venue.utilizationRate)}%
-                        </Badge>
+              {hasCapacityData ? (
+                <div className="rounded-md border">
+                  <div className="grid grid-cols-4 p-4 text-xs font-medium">
+                    <div>Event</div>
+                    <div className="text-right">Venue Capacity</div>
+                    <div className="text-right">Tickets Sold</div>
+                    <div className="text-right">Utilization Rate</div>
+                  </div>
+                  <div className="divide-y">
+                    {capacityData.venues.map((venue, i) => (
+                      <div key={i} className="grid grid-cols-4 p-4 text-sm">
+                        <div className="truncate">{venue.eventTitle}</div>
+                        <div className="text-right">{venue.venueCapacity}</div>
+                        <div className="text-right">{venue.ticketsSold}</div>
+                        <div className="text-right">
+                          <Badge variant={
+                            venue.utilizationRate > 90 ? "default" :
+                            venue.utilizationRate > 60 ? "secondary" : "outline"
+                          }>
+                            {Math.round(venue.utilizationRate)}%
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <EmptyState 
+                  title="No venue utilization details" 
+                  message="There are no events with venue capacity data to display. Create events with venues to see venue utilization details."
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+    </>
+  );
+}
+
+export default async function AnalyticsPage() {
+  // Check authorization
+  const session = await auth();
+  
+  if (!session) {
+    redirect('/sign-in');
+  }
+
+  // Verify admin or manager role
+  const user = session.user as User;
+  if (user.role !== 'admin' && user.role !== 'manager') {
+    return (
+      <div className="container py-10">
+        <h1 className="text-3xl font-bold mb-4">Access Denied</h1>
+        <p>You don&apos;t have permission to access this page.</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="container py-10 space-y-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Track ticket sales, revenue, and event performance.
+          </p>
+        </div>
+      </div>
+      
+      <Suspense fallback={<SummaryCardsLoading />}>
+        <AnalyticsContent />
+      </Suspense>
     </div>
   );
 } 

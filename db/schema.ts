@@ -298,3 +298,18 @@ export const notifications = pgTable("notification", {
   relatedEntityId: text("related_entity_id"), 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
+
+// Sales targets
+export const salesTargets = pgTable("sales_target", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(), // 1-12 for January-December
+  target: numeric("target", { precision: 10, scale: 2 }).notNull(),
+  createdById: text("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
+}, (table) => {
+  return {
+    yearMonthUnique: uniqueIndex("year_month_unique_idx").on(table.year, table.month)
+  };
+});

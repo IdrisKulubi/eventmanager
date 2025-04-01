@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import db from "@/db/drizzle";
 import { eq, and, gte, lte, count, sql, desc, asc, SQL } from "drizzle-orm";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { tickets, events, ticketCategories, orders, payments, venues } from "@/db/schema";
+import { tickets, events, ticketCategories, orders, payments, venues, salesTargets } from "@/db/schema";
 import {
   TimePeriod,
   SalesSummary,
@@ -14,8 +14,10 @@ import {
   CapacityUtilization,
   PaymentMethodDistribution,
   MonthlySalesTargets,
-  DateRange
+  DateRange,
+  MonthlyTarget
 } from "@/types/analytics";
+import { revalidatePath } from "next/cache";
 
 // Define User type with role property
 interface User {
@@ -467,7 +469,6 @@ export async function getPaymentMethodDistribution(dateRange?: DateRange): Promi
 /**
  * Get monthly sales targets and actuals
  */
-//TO DO :Make this dynamic and the admin can set the targets for each month and year  
 export async function getMonthlySalesTargets(year: number = new Date().getFullYear()): Promise<MonthlySalesTargets> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -478,7 +479,8 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
     const startDate = new Date(year, 0, 1); // January 1st of the year
     const endDate = new Date(year, 11, 31); // December 31st of the year
     
-    const query = db.select({
+    // Get actual sales by month
+    const actualsQuery = db.select({
       month: sql`DATE_TRUNC('month', ${orders.orderDate})::date`,
       actual: sql<number>`COALESCE(SUM(${orders.total}::int), 0)`,
     })
@@ -493,12 +495,27 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
     .groupBy(sql`DATE_TRUNC('month', ${orders.orderDate})::date`)
     .orderBy(sql`DATE_TRUNC('month', ${orders.orderDate})::date`);
     
-    const results = await query;
+    // Get custom targets from the salesTargets table
+    const targetsQuery = db.select({
+      month: salesTargets.month,
+      target: salesTargets.target,
+    })
+    .from(salesTargets)
+    .where(eq(salesTargets.year, year))
+    .orderBy(asc(salesTargets.month));
     
-    // Create a map to easily access actual values by month
+    // Execute both queries in parallel
+    const [actualsResults, targetsResults] = await Promise.all([actualsQuery, targetsQuery]);
+    
+    // Map month number to target amount
+    const targetsByMonth = new Map<number, number>();
+    targetsResults.forEach(target => {
+      targetsByMonth.set(target.month, Number(target.target));
+    });
+    
+    // Map month to actual sales
     const actualByMonth = new Map<number, number>();
-    
-    results.forEach(item => {
+    actualsResults.forEach(item => {
       if (item.month instanceof Date) {
         const date = item.month;
         const monthIndex = date.getMonth();
@@ -506,23 +523,27 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
       }
     });
     
-    // Generate monthly data with targets (placeholder logic for targets)
+    // Generate monthly data with targets
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     
-    // Simplified seasonal factors (higher targets during peak seasons)
+    // Default seasonal factors as fallback if no target is set
     const seasonalFactors = [
       0.7, 0.8, 1.0, 1.1, 1.2, 1.5, // Jan-Jun
       1.5, 1.4, 1.2, 1.0, 1.3, 1.5  // Jul-Dec
     ];
     
-    const baseTarget = 25000; // Base monthly target
+    const baseTarget = 25000; // Base monthly target for fallback
     
     const months = monthNames.map((monthName, index) => {
       const actual = actualByMonth.get(index) || 0;
-      const target = Math.round(baseTarget * seasonalFactors[index]);
+      
+      // Use custom target if set, otherwise calculate a default
+      const target = targetsByMonth.has(index + 1) 
+        ? targetsByMonth.get(index + 1) || 0
+        : Math.round(baseTarget * seasonalFactors[index]);
       
       return {
         month: monthName,
@@ -550,5 +571,108 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
   } catch (error) {
     console.error("Error in getMonthlySalesTargets:", error);
     throw new Error("Failed to fetch monthly sales targets");
+  }
+}
+
+/**
+ * Set a monthly sales target
+ */
+export async function setMonthlySalesTarget({
+  year,
+  month,
+  target
+}: {
+  year: number;
+  month: number; // 1-12 for January-December
+  target: number;
+}): Promise<{ success: boolean }> {
+  const hasPermission = await checkAnalyticsPermission();
+  if (!hasPermission) {
+    throw new Error('Unauthorized: You do not have permission to set sales targets');
+  }
+
+  if (month < 1 || month > 12) {
+    throw new Error('Invalid month value. Must be between 1-12.');
+  }
+  
+  if (target < 0) {
+    throw new Error('Target value cannot be negative.');
+  }
+
+  try {
+    const session = await auth();
+    const user = session?.user as User;
+    
+    // Check if a target for this year/month already exists
+    const existingTarget = await db.select()
+      .from(salesTargets)
+      .where(and(
+        eq(salesTargets.year, year),
+        eq(salesTargets.month, month)
+      ))
+      .limit(1);
+    
+    if (existingTarget.length > 0) {
+      // Update existing target
+      await db.update(salesTargets)
+        .set({
+          target: target.toString(),
+          updatedAt: new Date(),
+          createdById: user.id
+        })
+        .where(and(
+          eq(salesTargets.year, year),
+          eq(salesTargets.month, month)
+        ));
+    } else {
+      // Create new target
+      await db.insert(salesTargets)
+        .values({
+          year,
+          month,
+          target: target.toString(),
+          createdById: user.id,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+    }
+    
+    // Revalidate the dashboard page
+    revalidatePath('/dashboard/analytics');
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting monthly sales target:", error);
+    throw new Error("Failed to set monthly sales target");
+  }
+}
+
+/**
+ * Get all sales targets for a specific year
+ */
+export async function getYearlySalesTargets(year: number): Promise<MonthlyTarget[]> {
+  const hasPermission = await checkAnalyticsPermission();
+  if (!hasPermission) {
+    throw new Error('Unauthorized: You do not have permission to access sales targets');
+  }
+
+  try {
+    const targets = await db.select({
+      id: salesTargets.id,
+      year: salesTargets.year,
+      month: salesTargets.month,
+      target: salesTargets.target,
+    })
+    .from(salesTargets)
+    .where(eq(salesTargets.year, year))
+    .orderBy(asc(salesTargets.month));
+    
+    return targets.map(target => ({
+      month: target.month,
+      target: Number(target.target)
+    }));
+  } catch (error) {
+    console.error("Error fetching yearly sales targets:", error);
+    throw new Error("Failed to fetch yearly sales targets");
   }
 } 
