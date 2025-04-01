@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { eq, like, desc, asc, count, sql } from 'drizzle-orm';
+import { eq, like, desc, asc, count, inArray } from 'drizzle-orm';
 import { venues, events } from '@/db/schema';
 import db from '@/db/drizzle';
 import { VenueFormData } from '../validators';
@@ -77,7 +77,10 @@ export async function getVenues({
           count: count()
         })
         .from(events)
-        .where(sql`${events.venueId} IN (${venueIds.join(',')})`)
+        .where(venueIds.length === 1 
+          ? eq(events.venueId, venueIds[0])
+          : inArray(events.venueId, venueIds)
+        )
         .groupBy(events.venueId)
       : [];
     

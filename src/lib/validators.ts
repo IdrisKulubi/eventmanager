@@ -33,6 +33,20 @@ export const VenueFormSchema = z.object({
   }).optional(),
 });
 
+
+export const formSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Name must be at least 2 characters.',
+  }),
+  address: z.string().min(5, {
+    message: 'Address must be at least 5 characters.',
+  }),
+  capacity: z.coerce.number().min(1, {
+    message: 'Capacity must be at least 1.',
+  }),
+  description: z.string().optional(),
+});
+
 // Event schemas
 export const EventFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
@@ -66,7 +80,7 @@ export const EventFormSchema = z.object({
 export type EventFormData = z.infer<typeof EventFormSchema>;
 
 // Venue form schema
-export const VenueFormData = z.infer<typeof VenueFormSchema>;
+export type VenueFormData = z.infer<typeof VenueFormSchema>;
 
 // Category form schema
 export const CategoryFormSchema = z.object({

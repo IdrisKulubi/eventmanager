@@ -41,9 +41,9 @@ import { format } from "date-fns";
 import { CalendarIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { EventFormSchema } from "@/lib/validators";
-import { createEvent, updateEvent } from "@/lib/actions/event.actions";
+import { createEvent, updateEvent} from "@/lib/actions/event.actions";
 import { venues as venuesSchema } from "@/db/schema";
-import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, EVENT_CATEGORIES, EVENT_STATUSES, VENUES } from "@/lib/constants";
+import { ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE,  EVENT_STATUSES } from "@/lib/constants";
 import Image from "next/image";
 import { UploadButton } from "@/lib/uploadthing";
 import { Switch } from "@/components/ui/switch";
@@ -68,6 +68,7 @@ type Venue = typeof venuesSchema.$inferSelect;
 
 interface EventFormProps {
   venues: Venue[];
+  categories: { id: number; name: string }[];
   initialData?: {
     id: number;
     title: string;
@@ -92,7 +93,7 @@ interface UploadResponse {
   size: number;
 }
 
-export function EventForm({ venues, initialData }: EventFormProps) {
+export function EventForm({ venues, categories, initialData }: EventFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUploadComplete, setImageUploadComplete] = useState(false);
@@ -282,7 +283,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {VENUES.map((venue) => (
+                      {venues.map((venue) => (
                         <SelectItem
                           key={venue.id}
                           value={venue.id.toString()}
@@ -563,7 +564,7 @@ export function EventForm({ venues, initialData }: EventFormProps) {
                         <CommandInput placeholder="Search categories..." />
                         <CommandEmpty>No category found.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-auto">
-                          {EVENT_CATEGORIES.map((category) => {
+                          {categories.map((category) => {
                             const isSelected = field.value?.includes(category.id);
                             return (
                               <CommandItem

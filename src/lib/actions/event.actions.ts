@@ -617,4 +617,8 @@ export async function getFeaturedEvents(limit = 3) {
     console.error('Error fetching featured events:', error);
     return [];
   }
+}
+
+export async function getEventCategories() {
+  return await db.select().from(eventCategories);
 } 
