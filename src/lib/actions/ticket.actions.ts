@@ -270,6 +270,27 @@ export async function getTicketCategoriesByEventId(eventId: number | string) {
   }
 }
 
+// Get all ticket categories across all events
+export async function getAllTicketCategories() {
+  try {
+    const allTicketCategories = await db.select({
+      ticketCategory: ticketCategories,
+      eventTitle: events.title,
+      eventId: events.id,
+      eventStartDate: events.startDate,
+      eventEndDate: events.endDate,
+    })
+    .from(ticketCategories)
+    .innerJoin(events, eq(ticketCategories.eventId, events.id))
+    .orderBy(events.startDate, ticketCategories.isVIP, ticketCategories.price);
+    
+    return allTicketCategories;
+  } catch (error) {
+    console.error('Error fetching all ticket categories:', error);
+    throw new Error('Failed to fetch all ticket categories');
+  }
+}
+
 // Get a single ticket category by ID
 export async function getTicketCategoryById(id: number) {
   try {
