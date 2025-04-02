@@ -83,7 +83,7 @@ export default function EventPage({ params }: { params: { id: string } }) {
     (sum, type) => sum + type.price * tickets[type.id], 
     0
   );
-
+  
   return (
     <div className="min-h-screen bg-zinc-950 pb-20">
       {/* Hero Section */}
@@ -116,13 +116,13 @@ export default function EventPage({ params }: { params: { id: string } }) {
           </Button>
         </div>
       </section>
-
+      
       {/* Main Content */}
       <section className="container mx-auto px-4 -mt-40 relative z-10">
         <div className="bg-zinc-900/70 backdrop-blur-md border border-purple-900/30 rounded-xl p-6 md:p-8 lg:p-10">
           {/* Event Header */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
               <Badge className="mb-4 bg-purple-600 text-white hover:bg-purple-700 border-0">
                 {eventData.category}
               </Badge>
@@ -216,9 +216,9 @@ export default function EventPage({ params }: { params: { id: string } }) {
                     <div 
                       className="text-zinc-300 space-y-4 leading-relaxed" 
                       dangerouslySetInnerHTML={{ __html: eventData.longDescription }}
-                    />
-                  </div>
-                  
+            />
+        </div>
+        
                   <div>
                     <h3 className="text-xl font-semibold text-white mb-4">Event Gallery</h3>
                     <div className="grid grid-cols-2 gap-3">
@@ -232,8 +232,8 @@ export default function EventPage({ params }: { params: { id: string } }) {
                             alt={`Event image ${index + 1}`}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-500"
-                          />
-                        </div>
+            />
+          </div>
                       ))}
                     </div>
                   </div>

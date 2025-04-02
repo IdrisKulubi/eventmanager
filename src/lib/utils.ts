@@ -1,7 +1,9 @@
-import { VENUES, EVENT_CATEGORIES } from "@/lib/constants";
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
+import db from "@/db/drizzle"
+import { venues, eventCategories } from "@/db/schema"
+import { eq, inArray } from "drizzle-orm"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -46,50 +48,95 @@ export function calculateQrCodeDimensions(maxWidth: number): {
 }
 
 /**
- * Get venue name by ID from constants
+ * Get venue name by ID from database
  */
-export function getVenueNameById(venueId: number | null): string {
+export async function getVenueNameById(venueId: number | null): Promise<string> {
   if (!venueId) return "No venue specified";
   
-  const venue = VENUES.find(v => v.id === venueId);
-  return venue ? venue.name : `Unknown venue (ID: ${venueId})`;
+  try {
+    const venue = await db.select({ name: venues.name })
+      .from(venues)
+      .where(eq(venues.id, venueId))
+      .limit(1);
+    
+    return venue.length > 0 ? venue[0].name : `Unknown venue (ID: ${venueId})`;
+  } catch (error) {
+    console.error('Error fetching venue name:', error);
+    return `Unknown venue (ID: ${venueId})`;
+  }
 }
 
 /**
- * Get venue data by ID from constants
+ * Get venue data by ID from database
  */
-export function getVenueById(venueId: number | null) {
+export async function getVenueById(venueId: number | null) {
   if (!venueId) return null;
   
-  return VENUES.find(v => v.id === venueId) || null;
+  try {
+    const venue = await db.select()
+      .from(venues)
+      .where(eq(venues.id, venueId))
+      .limit(1);
+    
+    return venue.length > 0 ? venue[0] : null;
+  } catch (error) {
+    console.error('Error fetching venue:', error);
+    return null;
+  }
 }
 
 /**
- * Get category name by ID from constants
+ * Get category name by ID from database
  */
-export function getCategoryNameById(categoryId: number | null): string {
+export async function getCategoryNameById(categoryId: number | null): Promise<string> {
   if (!categoryId) return "Uncategorized";
   
-  const category = EVENT_CATEGORIES.find(c => c.id === categoryId);
-  return category ? category.name : `Unknown category (ID: ${categoryId})`;
+  try {
+    const category = await db.select({ name: eventCategories.name })
+      .from(eventCategories)
+      .where(eq(eventCategories.id, categoryId))
+      .limit(1);
+    
+    return category.length > 0 ? category[0].name : `Unknown category (ID: ${categoryId})`;
+  } catch (error) {
+    console.error('Error fetching category name:', error);
+    return `Unknown category (ID: ${categoryId})`;
+  }
 }
 
 /**
- * Get category data by ID from constants
+ * Get category data by ID from database
  */
-export function getCategoryById(categoryId: number | null) {
+export async function getCategoryById(categoryId: number | null) {
   if (!categoryId) return null;
   
-  return EVENT_CATEGORIES.find(c => c.id === categoryId) || null;
+  try {
+    const category = await db.select()
+      .from(eventCategories)
+      .where(eq(eventCategories.id, categoryId))
+      .limit(1);
+    
+    return category.length > 0 ? category[0] : null;
+  } catch (error) {
+    console.error('Error fetching category:', error);
+    return null;
+  }
 }
 
 /**
  * Map category IDs to category objects
  */
-export function mapCategoryIdsToCategories(categoryIds: number[] | undefined) {
+export async function mapCategoryIdsToCategories(categoryIds: number[] | undefined) {
   if (!categoryIds || !categoryIds.length) return [];
   
-  return categoryIds
-    .map(id => EVENT_CATEGORIES.find(c => c.id === id))
-    .filter(Boolean) as typeof EVENT_CATEGORIES[number][];
+  try {
+    const categories = await db.select()
+      .from(eventCategories)
+      .where(inArray(eventCategories.id, categoryIds));
+    
+    return categories;
+  } catch (error) {
+    console.error('Error mapping category IDs to categories:', error);
+    return [];
+  }
 }

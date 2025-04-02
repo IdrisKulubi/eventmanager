@@ -25,6 +25,23 @@ import { AlertTriangle } from "lucide-react";
 import TicketCategoryForm from "../../components/ticket-category-form";
 import DeleteTicketCategoryButton from "../../components/delete-ticket-category-button";
 
+// Add type definition for TicketCategory
+interface TicketCategory {
+  id: number;
+  eventId: number;
+  name: string;
+  description: string | null;
+  price: string;
+  quantity: number;
+  availableFrom: Date | null;
+  availableTo: Date | null;
+  isEarlyBird: boolean | null;
+  isVIP: boolean | null;
+  maxPerOrder: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export const dynamic = 'force-dynamic';
 
 export default async function EventTicketsPage({ params }: { params: { id: string } }) {
@@ -32,7 +49,7 @@ export default async function EventTicketsPage({ params }: { params: { id: strin
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/events');
+    redirect('/sign-in');
   }
   
   // Await params before accessing properties
@@ -111,22 +128,22 @@ export default async function EventTicketsPage({ params }: { params: { id: strin
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {ticketCategories.map((category) => (
+              {ticketCategories.map((category: TicketCategory) => (
                 <Card key={category.id} className="overflow-hidden flex flex-col">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between mb-1">
                       <CardTitle className="text-xl">{category.name}</CardTitle>
                       <div className="flex gap-1">
-                        {category.isVIP && (
+                        {category.isVIP ? (
                           <Badge variant="secondary" className="bg-purple-100 text-purple-800 hover:bg-purple-100">
                             VIP
                           </Badge>
-                        )}
-                        {category.isEarlyBird && (
+                        ) : null}
+                        {category.isEarlyBird ? (
                           <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
                             Early Bird
                           </Badge>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     <CardDescription>
@@ -147,14 +164,14 @@ export default async function EventTicketsPage({ params }: { params: { id: strin
                         <span className="font-medium">{category.quantity}</span>
                       </div>
                       
-                      {category.availableFrom && category.availableTo && (
+                      {category.availableFrom && category.availableTo ? (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Sale Period:</span>
                           <span className="font-medium">
                             {format(new Date(category.availableFrom), "MMM d")} - {format(new Date(category.availableTo), "MMM d, yyyy")}
                           </span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </CardContent>
                   
@@ -170,7 +187,6 @@ export default async function EventTicketsPage({ params }: { params: { id: strin
             </div>
           )}
         </TabsContent>
-        
         <TabsContent value="add">
           <Card>
             <CardHeader>

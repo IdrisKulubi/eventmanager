@@ -6,9 +6,7 @@ import { eq, and, inArray, gte, like, desc, asc, count } from 'drizzle-orm';
 import { z } from 'zod';
 import db from '@/db/drizzle';
 import { EventFormSchema } from '../validators';
-import { events, eventToCategory, eventCategories } from '@/db/schema';
-import { getVenueNameById } from '@/lib/utils';
-import { VENUES, EVENT_CATEGORIES } from '@/lib/constants';
+import { events, eventToCategory, eventCategories, venues } from '@/db/schema';
 
 type EventFormData = z.infer<typeof EventFormSchema>;
 
@@ -39,6 +37,9 @@ export async function getEvents({
   search,
   status,
   categoryId,
+  locationId,
+  startDate,
+  endDate,
   sortBy = 'startDate',
   sortOrder = 'desc',
 }: {
@@ -47,6 +48,9 @@ export async function getEvents({
   search?: string;
   status?: 'draft' | 'published' | 'cancelled' | 'completed';
   categoryId?: number;
+  locationId?: number;
+  startDate?: Date;
+  endDate?: Date;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }) {
@@ -59,83 +63,220 @@ export async function getEvents({
     
     if (status) {
       conditions.push(eq(events.status, status));
+    } else {
+      // Default to published events for public listing
+      conditions.push(eq(events.status, 'published'));
     }
     
     if (search) {
       conditions.push(like(events.title, `%${search}%`));
     }
     
-    // If filtering by category, need to join with eventToCategory
+    // Filter by location (venue)
+    if (locationId) {
+      conditions.push(eq(events.venueId, locationId));
+    }
+    
+    // Filter by date range
+    if (startDate) {
+      conditions.push(gte(events.startDate, startDate));
+    }
+    
+    if (endDate) {
+      conditions.push(gte(events.endDate, endDate));
+    }
+    
+    // If filtering by category, fetch eligible event IDs
+    let eligibleEventIds: number[] | undefined;
     if (categoryId) {
-      const eventIds = await db
+      const eventIdsResult = await db
         .select({ eventId: eventToCategory.eventId })
         .from(eventToCategory)
-        .where(eq(eventToCategory.categoryId, categoryId));
+        .where(eq(eventToCategory.categoryId, categoryId))
+        .execute()
+        .catch(err => {
+          console.error('Error fetching category event IDs:', err);
+          return [];
+        });
       
-      if (eventIds.length > 0) {
-        conditions.push(inArray(events.id, eventIds.map(e => e.eventId)));
+      if (eventIdsResult.length > 0) {
+        eligibleEventIds = eventIdsResult.map(e => e.eventId);
+        conditions.push(inArray(events.id, eligibleEventIds));
       } else {
-        return { events: [], count: 0 };
+        // No events in this category, return empty result early
+        return { 
+          events: [], 
+          pagination: { 
+            totalEvents: 0, 
+            totalPages: 0, 
+            currentPage: page, 
+            pageSize: limit 
+          } 
+        };
       }
     }
     
-    // Get total count for pagination
-    const totalEvents = await db.select({
-      value: count()
-    }).from(events);
-    const total = totalEvents[0]?.value || 0;
+    // Create the AND condition if we have any conditions
+    const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
     
-    // Apply pagination
-    const paginatedQuery = db.select().from(events)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+    // Run count query with timeout handling
+    const countPromise = db.select({
+      value: count()
+    })
+    .from(events)
+    .where(whereCondition)
+    .execute()
+    .catch(err => {
+      console.error('Error counting events:', err);
+      return [{ value: 0 }];
+    });
+    
+    // Run main query with timeout handling
+    const eventsPromise = db.select()
+      .from(events)
+      .where(whereCondition)
       .orderBy(sortBy === 'startDate' 
         ? (sortOrder === 'desc' ? desc(events.startDate) : asc(events.startDate))
         : sortBy === 'title'
           ? (sortOrder === 'desc' ? desc(events.title) : asc(events.title))
           : asc(events.id))
       .limit(limit)
-      .offset(offset);
+      .offset(offset)
+      .execute()
+      .catch(err => {
+        console.error('Error fetching events list:', err);
+        return [];
+      });
     
-    // Execute query
-    const eventsList = await paginatedQuery;
+    // Execute both queries in parallel
+    const [totalEventsResult, eventsList] = await Promise.all([countPromise, eventsPromise]);
     
-    // Get category data for all events
+    // Get total count for pagination
+    const total = totalEventsResult[0]?.value || 0;
+    
+    // Calculate total pages
+    const totalPages = Math.ceil(total / limit);
+    
+    // If no events found, return early
+    if (eventsList.length === 0) {
+      return { 
+        events: [], 
+        pagination: { 
+          totalEvents: total, 
+          totalPages, 
+          currentPage: page, 
+          pageSize: limit 
+        } 
+      };
+    }
+    
+    // Get event IDs for related data queries
     const eventIds = eventsList.map(event => event.id);
-    const categoryRelations = eventIds.length > 0 
+    
+    // Execute all related data queries in parallel to improve performance
+    const [categoryRelations, venueList] = await Promise.all([
+      // Get category relations
+      db.select({
+        eventId: eventToCategory.eventId,
+        categoryId: eventToCategory.categoryId,
+      })
+      .from(eventToCategory)
+      .where(inArray(eventToCategory.eventId, eventIds))
+      .execute()
+      .catch(err => {
+        console.error('Error fetching category relations:', err);
+        return [];
+      }),
+      
+      // Get venues data
+      db.select()
+        .from(venues)
+        .where(inArray(venues.id, eventsList.map(e => e.venueId).filter(Boolean) as number[]))
+        .execute()
+        .catch(err => {
+          console.error('Error fetching venues:', err);
+          return [];
+        })
+    ]);
+    
+    // Group category IDs by event ID for faster lookups
+    const categoryIdsByEvent = categoryRelations.reduce((acc, rel) => {
+      if (!acc[rel.eventId]) {
+        acc[rel.eventId] = [];
+      }
+      acc[rel.eventId].push(rel.categoryId);
+      return acc;
+    }, {} as Record<number, number[]>);
+    
+    // Create venue lookup map for faster access
+    const venueMap = venueList.reduce((acc, venue) => {
+      acc[venue.id] = venue;
+      return acc;
+    }, {} as Record<number, typeof venueList[number]>);
+    
+    // Fetch all needed categories in a single query
+    const uniqueCategoryIds = [...new Set(categoryRelations.map(rel => rel.categoryId))];
+    const categoriesData = uniqueCategoryIds.length > 0
       ? await db
-          .select({
-            eventId: eventToCategory.eventId,
-            categoryId: eventToCategory.categoryId,
+          .select()
+          .from(eventCategories)
+          .where(inArray(eventCategories.id, uniqueCategoryIds))
+          .execute()
+          .catch(err => {
+            console.error('Error fetching categories:', err);
+            return [];
           })
-          .from(eventToCategory)
-          .where(inArray(eventToCategory.eventId, eventIds))
       : [];
     
-    // Map venue names from constants and add categories to events
+    // Create category lookup map for faster access
+    const categoryMap = categoriesData.reduce((acc, category) => {
+      acc[category.id] = category;
+      return acc;
+    }, {} as Record<number, typeof categoriesData[number]>);
+    
+    // Map events with their related data
     const eventsWithDetails = eventsList.map(event => {
-      // Find venue from constants
-      const venue = VENUES.find(v => v.id === event.venueId);
+      // Get venue from map
+      const venue = event.venueId ? venueMap[event.venueId] : null;
       
       // Get category IDs for this event
-      const eventCategoryIds = categoryRelations
-        .filter(rel => rel.eventId === event.id)
-        .map(rel => rel.categoryId);
+      const eventCategoryIds = categoryIdsByEvent[event.id] || [];
       
-      // Map category IDs to full category objects from constants
-      const eventCategories = EVENT_CATEGORIES
-        .filter(cat => eventCategoryIds.includes(cat.id));
+      // Map category IDs to full category objects
+      const eventCategories = eventCategoryIds
+        .map(id => categoryMap[id])
+        .filter(Boolean);
       
       return {
         ...event,
         venueName: venue ? venue.name : 'Unknown venue',
+        venue,
         categories: eventCategories,
       };
     });
     
-    return { events: eventsWithDetails, count: total };
+    return { 
+      events: eventsWithDetails, 
+      pagination: {
+        totalEvents: total,
+        totalPages,
+        currentPage: page,
+        pageSize: limit
+      }
+    };
   } catch (error) {
     console.error('Error fetching events:', error);
-    throw new Error('Failed to fetch events');
+    // Return empty result with error flag instead of throwing
+    return { 
+      events: [], 
+      pagination: { 
+        totalEvents: 0, 
+        totalPages: 0, 
+        currentPage: page, 
+        pageSize: limit 
+      },
+      error: 'Failed to fetch events. Please try again later.'
+    };
   }
 }
 
@@ -174,14 +315,23 @@ export async function getEventById(id: number) {
       .from(eventToCategory)
       .where(eq(eventToCategory.eventId, id));
     
-    // Get venue name from constants
-    const venueName = getVenueNameById(event[0].venueId);
+    // Get venue from database instead of constants
+    const venueData = event[0].venueId ? await db
+      .select()
+      .from(venues)
+      .where(eq(venues.id, event[0].venueId))
+      .limit(1) : [];
     
-    // Map category IDs to category objects from constants
+    const venueName = venueData.length > 0 ? venueData[0].name : 'Unknown venue';
+    
+    // Get categories from database 
     const categoryIds = categoryData.map(item => item.categoryId);
-    const categories = EVENT_CATEGORIES.filter(cat => 
-      categoryIds.includes(cat.id)
-    );
+    const categories = categoryIds.length > 0
+      ? await db
+          .select()
+          .from(eventCategories)
+          .where(inArray(eventCategories.id, categoryIds))
+      : [];
     
     return {
       ...event[0],
@@ -537,26 +687,37 @@ export async function getUpcomingEvents(limit = 6) {
           .where(inArray(eventToCategory.eventId, eventIds))
       : [];
     
-    // Map venue names from constants and add categories to events
-    const eventsWithDetails = upcomingEvents.map(event => {
-      // Find venue from constants
-      const venue = VENUES.find(v => v.id === event.venueId);
+    // Get all venue IDs to fetch in a single query
+    const venueIds = upcomingEvents.map(event => event.venueId).filter(Boolean);
+    const venueList = venueIds.length > 0 
+      ? await db
+          .select()
+          .from(venues)
+          .where(inArray(venues.id, venueIds as number[]))
+      : [];
+    
+    // Map venue names from database and add categories to events
+    const eventsWithDetails = await Promise.all(upcomingEvents.map(async (event) => {
+      // Find venue from database
+      const venue = venueList.find(v => v.id === event.venueId);
       
       // Get category IDs for this event
       const eventCategoryIds = categoryRelations
         .filter(rel => rel.eventId === event.id)
         .map(rel => rel.categoryId);
       
-      // Map category IDs to full category objects from constants
-      const eventCategories = EVENT_CATEGORIES
-        .filter(cat => eventCategoryIds.includes(cat.id));
+      // Get categories from database
+      const eventCats = await db
+        .select()
+        .from(eventCategories)
+        .where(inArray(eventCategories.id, eventCategoryIds));
       
       return {
         ...event,
         venueName: venue ? venue.name : 'Unknown venue',
-        categories: eventCategories,
+        categories: eventCats,
       };
-    });
+    }));
     
     return eventsWithDetails;
   } catch (error) {
@@ -591,26 +752,37 @@ export async function getFeaturedEvents(limit = 3) {
           .where(inArray(eventToCategory.eventId, eventIds))
       : [];
     
-    // Map venue names from constants and add categories to events
-    const eventsWithDetails = featuredEvents.map(event => {
-      // Find venue from constants
-      const venue = VENUES.find(v => v.id === event.venueId);
+    // Get all venue IDs to fetch in a single query
+    const venueIds = featuredEvents.map(event => event.venueId).filter(Boolean);
+    const venueList = venueIds.length > 0 
+      ? await db
+          .select()
+          .from(venues)
+          .where(inArray(venues.id, venueIds as number[]))
+      : [];
+    
+    // Map venue names from database and add categories to events
+    const eventsWithDetails = await Promise.all(featuredEvents.map(async event => {
+      // Find venue from database
+      const venue = venueList.find(v => v.id === event.venueId);
       
       // Get category IDs for this event
       const eventCategoryIds = categoryRelations
         .filter(rel => rel.eventId === event.id)
         .map(rel => rel.categoryId);
       
-      // Map category IDs to full category objects from constants
-      const eventCategories = EVENT_CATEGORIES
-        .filter(cat => eventCategoryIds.includes(cat.id));
+      // Get categories from database
+      const eventCats = await db
+        .select()
+        .from(eventCategories)
+        .where(inArray(eventCategories.id, eventCategoryIds));
       
       return {
         ...event,
         venueName: venue ? venue.name : 'Unknown venue',
-        categories: eventCategories,
+        categories: eventCats,
       };
-    });
+    }));
     
     return eventsWithDetails;
   } catch (error) {
@@ -620,5 +792,94 @@ export async function getFeaturedEvents(limit = 3) {
 }
 
 export async function getEventCategories() {
-  return await db.select().from(eventCategories);
+  try {
+    // Fetch categories from the database instead of using constants
+    const categories = await db.select().from(eventCategories).orderBy(asc(eventCategories.name));
+    return categories;
+  } catch (error) {
+    console.error('Error fetching event categories:', error);
+    return [];
+  }
+}
+
+export async function getEventLocations() {
+  try {
+    // Fetch venues from the database instead of using constants
+    const locations = await db.select({
+      id: venues.id,
+      name: venues.name,
+      address: venues.address,
+      city: venues.city,
+      capacity: venues.capacity,
+      description: venues.description,
+      imageUrl: venues.imageUrl
+    })
+    .from(venues)
+    .orderBy(asc(venues.name));
+    
+    return locations;
+  } catch (error) {
+    console.error('Error fetching event locations:', error);
+    return [];
+  }
+}
+
+export async function getFeaturedEvent() {
+  try {
+    // Get a single featured event
+    const featuredEvents = await db
+      .select()
+      .from(events)
+      .where(
+        and(
+          eq(events.status, 'published'),
+          eq(events.isFeatured, true)
+        )
+      )
+      .orderBy(desc(events.startDate))
+      .limit(1);
+    
+    if (!featuredEvents.length) {
+      return null;
+    }
+    
+    const event = featuredEvents[0];
+    
+    // Get event categories
+    const categoryData = await db
+      .select({
+        categoryId: eventToCategory.categoryId,
+      })
+      .from(eventToCategory)
+      .where(eq(eventToCategory.eventId, event.id));
+    
+    // Get venue from database instead of constants
+    const venueData = event.venueId ? await db
+      .select()
+      .from(venues)
+      .where(eq(venues.id, event.venueId))
+      .limit(1) : [];
+    
+    const venueName = venueData.length > 0 ? venueData[0].name : 'Unknown venue';
+    
+    // Get categories from database instead of constants
+    const categoryIds = categoryData.map(item => item.categoryId);
+    
+    const categories = categoryIds.length > 0
+      ? await db
+          .select()
+          .from(eventCategories)
+          .where(inArray(eventCategories.id, categoryIds))
+      : [];
+    
+    return {
+      ...event,
+      venueName,
+      venue: venueData.length > 0 ? venueData[0] : null,
+      categories
+    };
+  } catch (error) {
+    console.error('Error fetching featured event:', error);
+    return null;
+  }
 } 

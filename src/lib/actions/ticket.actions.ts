@@ -592,4 +592,21 @@ export async function updateTicketCategory({
     console.error('Error updating ticket category:', error);
     throw new Error('Failed to update ticket category');
   }
+}
+
+/**
+ * Get ticket categories for a specific event
+ */
+export async function getTicketCategoriesByEventId(eventId: number) {
+  try {
+    const categories = await db.select()
+      .from(ticketCategories)
+      .where(eq(ticketCategories.eventId, eventId))
+      .orderBy(desc(ticketCategories.createdAt));
+    
+    return categories;
+  } catch (error) {
+    console.error('Error fetching ticket categories for event:', error);
+    throw new Error('Failed to fetch ticket categories');
+  }
 } 

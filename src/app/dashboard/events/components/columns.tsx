@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EllipsisVerticalIcon, PencilIcon, TrashIcon, EyeIcon, TicketIcon } from "@heroicons/react/24/outline";
+import { EllipsisVerticalIcon, PencilIcon, TrashIcon, EyeIcon } from "@heroicons/react/24/outline";
 import { publishEvent, deleteEvent } from "@/lib/actions/event.actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
