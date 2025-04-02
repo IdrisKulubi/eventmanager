@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/db/drizzle';
+import  db  from '@/db/drizzle';
 import { tickets, ticketCategories } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   try {
@@ -38,18 +38,24 @@ export async function POST(request: Request) {
     }
 
     // Validate quantity
-    if (quantity > category.maxPerOrder) {
+    if (category.maxPerOrder !== null && quantity > category.maxPerOrder) {
       return NextResponse.json(
         { error: `Maximum ${category.maxPerOrder} tickets per order` },
         { status: 400 }
       );
     }
 
+    // Create order record first
+    const orderId = Date.now().toString(); // Replace with actual order creation
+
     // Check availability
-    const availableTickets = await db.select()
+    const availableTickets = await db
+      .select()
       .from(tickets)
-      .where(eq(tickets.ticketCategoryId, categoryId))
-      .where(eq(tickets.status, 'available'))
+      .where(and(
+        eq(tickets.ticketCategoryId, categoryId),
+        eq(tickets.status, 'available')
+      ))
       .limit(quantity);
 
     if (availableTickets.length < quantity) {
@@ -60,17 +66,15 @@ export async function POST(request: Request) {
     }
 
     // Update ticket status
-    const ticketIds = availableTickets.map(ticket => ticket.id);
-    await db.update(tickets)
+    const ticketIds = availableTickets.map((ticket: { id: number }) => ticket.id);
+    await db
+      .update(tickets)
       .set({
         status: 'reserved',
-        userId: session.user.id,
+        orderId: Number(orderId),
         purchaseDate: new Date(),
       })
       .where(eq(tickets.id, ticketIds[0]));
-
-    // Create order record (you'll need to implement this)
-    const orderId = Date.now().toString(); // Replace with actual order creation
 
     return NextResponse.json({
       orderId,

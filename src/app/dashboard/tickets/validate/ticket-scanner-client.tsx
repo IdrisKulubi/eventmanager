@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { validateTicket, checkInTicket } from "@/lib/actions/ticket.actions";
-import { verifyTicketQR, TicketQRData } from "@/lib/utils/ticket-utils";
+import { verifyTicketQR } from "@/lib/utils/ticket-utils";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, XCircle, QrCode, TicketCheck, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -20,6 +20,7 @@ export default function TicketScannerClient() {
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
     message: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ticket?: any;
     checkedInAt?: Date;
   } | null>(null);
@@ -119,7 +120,10 @@ export default function TicketScannerClient() {
 
     try {
       const result = await validateTicket(Number(id));
-      setValidationResult(result);
+      setValidationResult({
+        ...result,
+        checkedInAt: result.checkedInAt || undefined
+      });
 
       // Auto check-in if enabled and ticket is valid
       if (autoCheckIn && result.valid) {

@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Clock, MapPin, Tag, ChevronRight } from 'lucide-react';
+import { Calendar,  MapPin, Tag, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
-export function FeaturedEventCard({ event }) {
+export function FeaturedEventCard({ event }: { event: any }) {
   const [isHovered, setIsHovered] = useState(false);
   
   if (!event) return null;
@@ -21,7 +22,6 @@ export function FeaturedEventCard({ event }) {
     description, 
     bannerImage, 
     startDate, 
-    endDate, 
     venueName,
     venue,
     categories,
@@ -80,7 +80,7 @@ export function FeaturedEventCard({ event }) {
             
             {categories?.length > 0 && (
               <div className="flex gap-2 mb-4">
-                {categories.slice(0, 3).map(category => (
+                {categories.slice(0, 3).map((category: any) => (
                   <Badge 
                     key={category.id} 
                     variant="outline" 

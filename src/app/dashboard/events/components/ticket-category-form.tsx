@@ -126,7 +126,7 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
     
     try {
       const result = isEditing
-        ? await updateTicketCategory(parseInt(editCategoryId!, 10), { ...values, eventId: Number(eventId) })
+        ? await updateTicketCategory({ id: Number(editCategoryId), ...values })
         : await createTicketCategory({ ...values, eventId: Number(eventId) });
       
       if (result.success) {
@@ -135,7 +135,7 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
         router.push(`/dashboard/events/${eventId}/tickets`);
         router.refresh();
       } else {
-        toast.error(result.error || 'Failed to save ticket category');
+        toast.error('Failed to save ticket category');
       }
     } catch (error) {
       console.error('Error saving ticket category:', error);

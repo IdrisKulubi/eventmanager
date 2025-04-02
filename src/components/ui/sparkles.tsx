@@ -150,6 +150,7 @@ export const SparklesCore = ({
       const initialSparkles = range(0, particleCount).map(() => generateSparkle(containerRef.current));
       setSparkles(initialSparkles);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [particleCount]);
 
   const generateSparkle = (container: HTMLElement | null): SparkleProps => {

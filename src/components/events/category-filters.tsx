@@ -1,81 +1,50 @@
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
-interface Category {
+export interface Category {
   id: string;
   name: string;
   count: number;
 }
 
-export function CategoryFilters() {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  
-  const categories: Category[] = [
-    { id: 'rock', name: 'Rock', count: 18 },
-    { id: 'pop', name: 'Pop', count: 24 },
-    { id: 'electronic', name: 'Electronic', count: 15 },
-    { id: 'hiphop', name: 'Hip Hop', count: 12 },
-    { id: 'jazz', name: 'Jazz', count: 8 },
-    { id: 'classical', name: 'Classical', count: 5 },
-    { id: 'indie', name: 'Indie', count: 10 },
-    { id: 'metal', name: 'Metal', count: 6 },
-  ];
+interface CategoryFiltersProps {
+  categories: Category[];
+  selectedCategories: string[];
+  onChange: (categories: string[]) => void;
+}
 
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategories(prevSelected => 
-      prevSelected.includes(categoryId)
-        ? prevSelected.filter(id => id !== categoryId)
-        : [...prevSelected, categoryId]
-    );
+export function CategoryFilters({ categories, selectedCategories, onChange }: CategoryFiltersProps) {
+  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+    if (checked) {
+      onChange([...selectedCategories, categoryId]);
+    } else {
+      onChange(selectedCategories.filter(id => id !== categoryId));
+    }
   };
 
   return (
-    <div className="space-y-2">
-      {categories.map((category) => {
-        const isSelected = selectedCategories.includes(category.id);
-        
-        return (
-          <button
-            key={category.id}
-            onClick={() => toggleCategory(category.id)}
-            className={`
-              w-full flex items-center justify-between py-2 px-3 rounded-md text-sm 
-              transition-all duration-300
-              ${isSelected 
-                ? 'bg-purple-700/30 text-purple-200 border border-purple-600/40' 
-                : 'text-zinc-300 hover:bg-purple-800/20 border border-transparent'
-              }
-            `}
-          >
-            <div className="flex items-center">
-              {isSelected ? (
-                <CheckCircle2 className="w-4 h-4 mr-2 text-purple-500" />
-              ) : (
-                <div className={`w-4 h-4 mr-2 rounded-full border ${isSelected ? 'border-purple-500' : 'border-zinc-600'}`} />
-              )}
-              <span>{category.name}</span>
-            </div>
-            <span className={`text-xs rounded-full px-2 py-0.5 ${
-              isSelected 
-                ? 'bg-purple-800 text-purple-300' 
-                : 'bg-zinc-800 text-zinc-500'
-            }`}>
-              {category.count}
-            </span>
-          </button>
-        );
-      })}
-      
-      {selectedCategories.length > 0 && (
-        <button 
-          onClick={() => setSelectedCategories([])}
-          className="mt-3 w-full text-center text-xs text-purple-400 hover:text-purple-300 py-1"
-        >
-          Clear All Filters
-        </button>
-      )}
+    <div className="space-y-4">
+      <h3 className="text-sm font-medium text-white">Categories</h3>
+      <div className="space-y-2">
+        {categories.map((category) => (
+          <div key={category.id} className="flex items-center space-x-2">
+            <Checkbox
+              id={category.id}
+              checked={selectedCategories.includes(category.id)}
+              onCheckedChange={(checked) => handleCategoryChange(category.id, checked as boolean)}
+              className="border-purple-900/50 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600"
+            />
+            <Label
+              htmlFor={category.id}
+              className="text-sm text-zinc-300 hover:text-white cursor-pointer"
+            >
+              {category.name} ({category.count})
+            </Label>
+          </div>
+        ))}
+      </div>
     </div>
   );
 } 

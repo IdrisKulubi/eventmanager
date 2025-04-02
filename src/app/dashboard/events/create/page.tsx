@@ -10,7 +10,7 @@ export default async function CreateEventPage() {
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/events/create');
+    redirect('/sign-in');
   }
   
   // Fetch venues for the form
@@ -20,7 +20,7 @@ export default async function CreateEventPage() {
     <div className="container py-10">
       <h1 className="text-3xl font-bold tracking-tight mb-8">Create Event</h1>
       <div className="max-w-5xl mx-auto">
-        <EventForm venues={venues} />
+        <EventForm venues={venues} categories={[]} />
       </div>
     </div>
   );

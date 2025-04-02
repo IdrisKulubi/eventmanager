@@ -102,7 +102,7 @@ export const PulsingButton = ({
   children,
   className,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { 
+}: React.ComponentPropsWithoutRef<typeof motion.button> & {
   children: React.ReactNode;
 }) => {
   return (

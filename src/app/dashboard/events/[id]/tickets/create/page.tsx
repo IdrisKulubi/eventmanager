@@ -5,16 +5,21 @@ import { TicketCategoryForm } from "../components/ticket-category-form";
 
 export const dynamic = 'force-dynamic';
 
-export default async function CreateTicketCategoryPage({ params }: { params: { id: string } }) {
+export default async function CreateTicketCategoryPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }>
+}) {
+  const resolvedParams = await params;
+  
   // Check authorization
-  const paramsPromise = await params;
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/events');
+    redirect('/sign-in');
   }
   
-  const eventId = parseInt(paramsPromise.id);
+  const eventId = parseInt(resolvedParams.id);
   
   // Get event details
   const event = await getEventById(eventId);

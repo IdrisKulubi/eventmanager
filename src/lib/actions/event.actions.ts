@@ -726,68 +726,26 @@ export async function getUpcomingEvents(limit = 6) {
   }
 }
 
-export async function getFeaturedEvents(limit = 3) {
+export async function getFeaturedEvents() {
   try {
-    const featuredEvents = await db
-      .select()
-      .from(events)
-      .where(
-        and(
-        eq(events.status, 'published'),
-          eq(events.isFeatured, true)
-        )
-      )
-      .orderBy(desc(events.startDate))
-      .limit(limit);
-    
-    // Get category data for all events
-    const eventIds = featuredEvents.map(event => event.id);
-    const categoryRelations = eventIds.length > 0 
-      ? await db
-          .select({
-            eventId: eventToCategory.eventId,
-            categoryId: eventToCategory.categoryId,
-          })
-          .from(eventToCategory)
-          .where(inArray(eventToCategory.eventId, eventIds))
-      : [];
-    
-    // Get all venue IDs to fetch in a single query
-    const venueIds = featuredEvents.map(event => event.venueId).filter(Boolean);
-    const venueList = venueIds.length > 0 
-      ? await db
-          .select()
-          .from(venues)
-          .where(inArray(venues.id, venueIds as number[]))
-      : [];
-    
-    // Map venue names from database and add categories to events
-    const eventsWithDetails = await Promise.all(featuredEvents.map(async event => {
-      // Find venue from database
-      const venue = venueList.find(v => v.id === event.venueId);
-      
-      // Get category IDs for this event
-      const eventCategoryIds = categoryRelations
-        .filter(rel => rel.eventId === event.id)
-        .map(rel => rel.categoryId);
-      
-      // Get categories from database
-      const eventCats = await db
-        .select()
-        .from(eventCategories)
-        .where(inArray(eventCategories.id, eventCategoryIds));
-      
-      return {
-        ...event,
-        venueName: venue ? venue.name : 'Unknown venue',
-        categories: eventCats,
-      };
-    }));
-    
-    return eventsWithDetails;
+    const featuredEvents = await db.query.events.findMany({
+      where: (events, { eq }) => eq(events.isFeatured, true),
+      orderBy: (events, { desc }) => [desc(events.createdAt)],
+      limit: 1,
+      with: {
+        venue: true,
+        ticketCategories: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          orderBy: (ticketCategories: any, { asc }: { asc: (column: any) => any }) => [asc(ticketCategories.price)],
+          limit: 1,
+        },
+      },
+    });
+
+    return featuredEvents;
   } catch (error) {
-    console.error('Error fetching featured events:', error);
-    return [];
+    console.error("Error fetching featured events:", error);
+    throw new Error("Failed to fetch featured events");
   }
 }
 

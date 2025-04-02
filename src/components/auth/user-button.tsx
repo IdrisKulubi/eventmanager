@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { 
-  User, UserCircle, LogOut, Settings, 
+   UserCircle, LogOut, Settings, 
   Ticket, Calendar, LayoutDashboard, ChevronDown 
 } from 'lucide-react';
 import { 

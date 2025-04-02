@@ -609,4 +609,130 @@ export async function getTicketCategoriesByEventId(eventId: number) {
     console.error('Error fetching ticket categories for event:', error);
     throw new Error('Failed to fetch ticket categories');
   }
+}
+
+/**
+ * Delete a ticket category
+ */
+export async function deleteTicketCategory(id: number) {
+  const hasPermission = await checkTicketManagementPermission();
+  if (!hasPermission) {
+    throw new Error('Unauthorized: You do not have permission to delete ticket categories');
+  }
+
+  try {
+    // Get the current category to get the eventId for revalidation
+    const currentCategory = await db.select()
+      .from(ticketCategories)
+      .where(eq(ticketCategories.id, id))
+      .limit(1);
+    
+    if (!currentCategory.length) {
+      throw new Error('Ticket category not found');
+    }
+    
+    const eventId = currentCategory[0].eventId;
+
+    // Check if there are any tickets associated with this category
+    const associatedTickets = await db.select()
+      .from(tickets)
+      .where(eq(tickets.ticketCategoryId, id))
+      .limit(1);
+
+    if (associatedTickets.length > 0) {
+      throw new Error('Cannot delete category with associated tickets');
+    }
+    
+    // Delete the ticket category
+    await db.delete(ticketCategories)
+      .where(eq(ticketCategories.id, id));
+    
+    // Revalidate paths
+    revalidatePath(`/dashboard/events/${eventId}`);
+    revalidatePath(`/dashboard/events/${eventId}/tickets`);
+    
+    return { success: true, message: 'Ticket category deleted successfully' };
+  } catch (error) {
+    console.error('Error deleting ticket category:', error);
+    throw new Error(error instanceof Error ? error.message : 'Failed to delete ticket category');
+  }
+}
+
+/**
+ * Create a new ticket category for an event
+ */
+export async function createTicketCategory({
+  eventId,
+  name,
+  description,
+  price,
+  quantity,
+  isVIP,
+  isEarlyBird,
+  availableFrom,
+  availableTo
+}: {
+  eventId: number;
+  name: string;
+  description?: string;
+  price: number;
+  quantity: number;
+  isVIP?: boolean;
+  isEarlyBird?: boolean;
+  availableFrom: Date;
+  availableTo: Date;
+}) {
+  const hasPermission = await checkTicketManagementPermission();
+  if (!hasPermission) {
+    throw new Error('Unauthorized: You do not have permission to create ticket categories');
+  }
+
+  try {
+    // Create the ticket category
+    const [newCategory] = await db.insert(ticketCategories)
+      .values({
+        eventId,
+        name,
+        description,
+        price: price.toString(), // Convert price to string to match DB schema
+        quantity,
+        isVIP: isVIP || false,
+        isEarlyBird: isEarlyBird || false,
+        availableFrom,
+        availableTo,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Revalidate paths
+    revalidatePath(`/dashboard/events/${eventId}`);
+    revalidatePath(`/dashboard/events/${eventId}/tickets`);
+    
+    return { success: true, category: newCategory };
+  } catch (error) {
+    console.error('Error creating ticket category:', error);
+    throw new Error('Failed to create ticket category');
+  }
+}
+
+/**
+ * Get a single ticket category by ID
+ */
+export async function getTicketCategoryById(id: number) {
+  try {
+    const category = await db.select()
+      .from(ticketCategories)
+      .where(eq(ticketCategories.id, id))
+      .limit(1);
+    
+    if (!category.length) {
+      return null;
+    }
+    
+    return category[0];
+  } catch (error) {
+    console.error('Error fetching ticket category:', error);
+    throw new Error('Failed to fetch ticket category');
+  }
 } 

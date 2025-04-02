@@ -17,15 +17,21 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-export default async function EventDetailsPage({ params }: { params: { id: string } }) {
+export default async function EventDetailsPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const resolvedParams = await params;
+  
   // Check authorization
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/events');
+    redirect('/sign-in');
   }
   
-  const eventId = parseInt(params.id);
+  const eventId = parseInt(resolvedParams.id);
   
   // Get event details
   const event = await getEventById(eventId);

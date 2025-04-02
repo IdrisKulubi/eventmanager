@@ -109,9 +109,9 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
 
       if (initialData) {
         // Update existing ticket category
-        const result = await updateTicketCategory(initialData.id, {
+        const result = await updateTicketCategory({
+          id: initialData.id,
           ...data,
-          eventId,
         });
 
         if (result && result.success) {
@@ -121,7 +121,7 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
             router.refresh();
           }, 500);
         } else {
-          throw new Error(result?.error || "Failed to update ticket category");
+          throw new Error("Failed to update ticket category");
         }
       } else {
         // Create new ticket category
@@ -137,7 +137,7 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
             router.refresh();
           }, 500);
         } else {
-          throw new Error(result?.error || "Failed to create ticket category");
+          throw new Error("Failed to create ticket category");
         }
       }
     } catch (error: unknown) {

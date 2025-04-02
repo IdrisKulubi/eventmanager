@@ -2,7 +2,6 @@
 
 import { UploadButton as UTUploadButton } from "@uploadthing/react";
 import { OurFileRouter } from "@/app/api/uploadthing/core";
-import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -23,8 +22,8 @@ export function UploadButton({
   const [isUploading, setIsUploading] = useState(false);
 
   return (
-    <UTUploadButton<OurFileRouter>
-      endpoint="eventImageUploader"
+    <UTUploadButton<OurFileRouter, "imageUploader">
+      endpoint="imageUploader"
       onUploadBegin={() => {
         setIsUploading(true);
         console.log("Starting upload...");
@@ -33,11 +32,9 @@ export function UploadButton({
         setIsUploading(false);
         console.log("Upload completed on client side, result:", JSON.stringify(res, null, 2));
         if (res?.[0]) {
-          console.log("File URL from uploadthing:", res[0].fileUrl);
-          console.log("File key from uploadthing:", res[0].fileKey);
           onUploadComplete({
-            fileUrl: res[0].fileUrl,
-            fileKey: res[0].fileKey,
+            fileUrl: res[0].ufsUrl,
+            fileKey: res[0].key,
           });
           toast.success("Image uploaded successfully");
         }
@@ -49,26 +46,19 @@ export function UploadButton({
         onUploadError?.(error);
       }}
       className={className}
-    >
-      {({ ready }) => (
-        <Button
-          type="button"
-          disabled={!ready || isUploading}
-          className={className}
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <ImageIcon className="mr-2 h-4 w-4" />
-              {buttonText}
-            </>
-          )}
-        </Button>
-      )}
-    </UTUploadButton>
+      content={{
+        button: isUploading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Uploading...
+          </>
+        ) : (
+          <>
+            <ImageIcon className="mr-2 h-4 w-4" />
+            {buttonText}
+          </>
+        ),
+      }}
+    />
   );
 } 

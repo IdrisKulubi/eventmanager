@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare global {
   namespace JSX {

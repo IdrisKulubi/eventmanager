@@ -9,17 +9,19 @@ export const dynamic = 'force-dynamic';
 export default async function EditTicketCategoryPage({ 
   params 
 }: { 
-  params: { id: string; ticketId: string }
+  params: Promise<{ id: string; ticketId: string }>
 }) {
+  const resolvedParams = await params;
+  
   // Check authorization
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
-    redirect('/auth/login?callbackUrl=/dashboard/events');
+    redirect('/sign-in');
   }
   
-  const eventId = parseInt(params.id);
-  const ticketId = parseInt(params.ticketId);
+  const eventId = parseInt(resolvedParams.id);
+  const ticketId = parseInt(resolvedParams.ticketId);
   
   // Get event details
   const event = await getEventById(eventId);

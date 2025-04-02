@@ -1,8 +1,7 @@
 import { auth } from "@/auth";
-import {  notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getEventById } from "@/lib/actions/event.actions";
 import { EventForm } from "../../components/event-form";
-
 import { getEventCategories } from "@/lib/actions/event.actions";
 import { getVenues } from "@/lib/actions/venue.actions";
 
@@ -18,14 +17,15 @@ export const revalidate = 0;
 export default async function EditEventPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const resolvedParams = await params;
   const session = await auth();
   if (!session?.user) {
     return notFound();
   }
 
-  const eventId = parseInt(params.id);
+  const eventId = parseInt(resolvedParams.id);
   if (isNaN(eventId)) {
     return notFound();
   }

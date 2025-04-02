@@ -22,7 +22,7 @@ interface DeleteTicketCategoryButtonProps {
   eventId: string | number;
 }
 
-export default function DeleteTicketCategoryButton({ categoryId, eventId }: DeleteTicketCategoryButtonProps) {
+export default function DeleteTicketCategoryButton({ categoryId }: DeleteTicketCategoryButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -36,7 +36,7 @@ export default function DeleteTicketCategoryButton({ categoryId, eventId }: Dele
         toast.success('Ticket category deleted successfully');
         setIsOpen(false);
       } else {
-        toast.error(result.error || 'Failed to delete ticket category');
+        toast.error(result.message || 'Failed to delete ticket category');
       }
     } catch (error) {
       toast.error('An error occurred while deleting the ticket category');

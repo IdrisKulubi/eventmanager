@@ -1,93 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState } from 'react';
-import { ArrowUpDown, Calendar, Clock, MapPin, Star } from 'lucide-react';
+import React from 'react';
+import { Clock, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 import { BellRing, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 
-// Placeholder event data
-const eventsData = [
-  {
-    id: '1',
-    title: 'Electric Dreams Festival',
-    date: 'June 15, 2023',
-    time: '8:00 PM',
-    location: 'Skylight Arena, New York',
-    imageSrc: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1170&auto=format&fit=crop',
-    category: 'Electronic',
-    price: 89,
-    featured: true,
-  },
-  {
-    id: '2',
-    title: 'Neon Nights: DJ Max Live',
-    date: 'July 2, 2023',
-    time: '10:00 PM',
-    location: 'Wave Club, Los Angeles',
-    imageSrc: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?q=80&w=1170&auto=format&fit=crop',
-    category: 'DJ Set',
-    price: 65,
-    featured: false,
-  },
-  {
-    id: '3',
-    title: 'Symphony Under Stars',
-    date: 'July 10, 2023',
-    time: '7:30 PM',
-    location: 'Central Park, New York',
-    imageSrc: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=1074&auto=format&fit=crop',
-    category: 'Classical',
-    price: 120,
-    featured: false,
-  },
-  {
-    id: '4',
-    title: 'Cosmic Rock Experience',
-    date: 'August 5, 2023',
-    time: '9:00 PM',
-    location: 'Stellar Stadium, Chicago',
-    imageSrc: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?q=80&w=1170&auto=format&fit=crop',
-    category: 'Rock',
-    price: 95,
-    featured: true,
-  },
-  {
-    id: '5',
-    title: 'Beats & Bass Festival',
-    date: 'August 20, 2023',
-    time: '8:00 PM',
-    location: 'Echo Arena, Miami',
-    imageSrc: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?q=80&w=1170&auto=format&fit=crop',
-    category: 'Hip Hop',
-    price: 75,
-    featured: false,
-  },
-  {
-    id: '6',
-    title: 'Vocal Harmony Concert',
-    date: 'September 12, 2023',
-    time: '7:00 PM',
-    location: 'Grand Hall, San Francisco',
-    imageSrc: 'https://images.unsplash.com/photo-1619229666372-3c26c399a633?q=80&w=1173&auto=format&fit=crop',
-    category: 'Vocal',
-    price: 110,
-    featured: false,
-  },
-];
-
-type SortOption = 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc' | 'popularity';
 
 interface EventsGridProps {
   events: any[];
@@ -170,7 +93,7 @@ export function EventsGrid({
         <BellRing className="mx-auto h-12 w-12 text-purple-400 mb-4" />
         <h3 className="text-xl font-semibold text-white mb-2">No events found</h3>
         <p className="text-zinc-400 mb-6 max-w-md mx-auto">
-          We couldn't find any events matching your criteria. Try adjusting your filters or search query.
+          We couldn&apos;t find any events matching your criteria. Try adjusting your filters or search query.
         </p>
         <Button
           asChild

@@ -1,6 +1,6 @@
 import './load-env';
 import db from "./drizzle";
-import { tickets, ticketCategories } from "./schema";
+import { tickets } from "./schema";
 import { nanoid } from 'nanoid';
 import QRCode from 'qrcode';
 import { sql } from "drizzle-orm";
@@ -56,7 +56,8 @@ async function main() {
           })
         );
 
-        await db.insert(tickets).values(ticketValues);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await db.insert(tickets).values(ticketValues as any);
         
         console.log(`✅ Created batch ${i + 1}/${batches} for category ${category.name}`);
       }
