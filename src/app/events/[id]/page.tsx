@@ -107,7 +107,7 @@ export default function EventPage() {
             <div className="lg:border-l lg:border-purple-900/30 lg:pl-8 flex flex-col justify-center">
               <div className="text-center p-6 bg-gradient-to-br from-purple-900/20 to-zinc-900/60 rounded-lg border border-purple-900/20">
                 <div className="text-sm text-zinc-400 mb-1">Starting from</div>
-                <div className="text-3xl font-bold text-white mb-4">$149</div>
+                <div className="text-3xl font-bold text-white mb-4">Ksh 149</div>
                 
                 <Button 
                   className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white border-0 mb-3"
@@ -181,7 +181,7 @@ export default function EventPage() {
                           </Badge>
                         </div>
                         <p className="text-zinc-400 mt-1 mb-3 text-sm">{ticket.description}</p>
-                        <div className="text-xl font-bold text-white">${ticket.price}</div>
+                        <div className="text-xl font-bold text-white">Ksh {ticket.price}</div>
                       </div>
                       
                       <div className="flex items-center space-x-3">
@@ -234,7 +234,7 @@ export default function EventPage() {
                           return (
                             <div key={type} className="flex justify-between text-sm mb-2">
                               <span className="text-zinc-300">{ticketType.name} × {count}</span>
-                              <span className="text-white">${ticketType.price * count}</span>
+                              <span className="text-white">Ksh {ticketType.price * count}</span>
                             </div>
                           );
                         })}
@@ -243,7 +243,7 @@ export default function EventPage() {
                         
                         <div className="flex justify-between font-semibold">
                           <span className="text-zinc-200">Total</span>
-                          <span className="text-white">${totalAmount}</span>
+                          <span className="text-white">Ksh {totalAmount}</span>
                         </div>
                       </div>
                       
