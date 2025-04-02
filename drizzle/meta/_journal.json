@@ -15,6 +15,20 @@
       "when": 1743430358596,
       "tag": "0001_flippant_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743546525007,
+      "tag": "0002_typical_kate_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1743550759826,
+      "tag": "0003_steady_captain_universe",
+      "breakpoints": true
     }
   ]
 }

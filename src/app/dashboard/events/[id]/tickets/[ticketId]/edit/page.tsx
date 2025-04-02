@@ -35,6 +35,14 @@ export default async function EditTicketCategoryPage({
     redirect(`/dashboard/events/${eventId}/tickets`);
   }
   
+  // Transform the data to match the form's expected types
+  const transformedData = {
+    ...ticketCategory,
+    price: parseFloat(ticketCategory.price),
+    isEarlyBird: ticketCategory.isEarlyBird ?? false,
+    isVIP: ticketCategory.isVIP ?? false,
+  };
+  
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold tracking-tight mb-8">
@@ -43,7 +51,7 @@ export default async function EditTicketCategoryPage({
       <div className="max-w-5xl mx-auto">
         <TicketCategoryForm 
           eventId={eventId} 
-          initialData={ticketCategory} 
+          initialData={transformedData} 
         />
       </div>
     </div>

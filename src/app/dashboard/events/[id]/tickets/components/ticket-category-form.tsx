@@ -56,7 +56,7 @@ interface TicketCategoryFormProps {
     id: number;
     name: string;
     description: string | null;
-    price: number;
+    price: number ;
     quantity: number;
     availableFrom: Date | string;
     availableTo: Date | string;

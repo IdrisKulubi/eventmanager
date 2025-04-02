@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   const session = await auth();
   
   if (!session) {
-    redirect('/auth/login?callbackUrl=/dashboard');
+    redirect('/sign-in');
   }
   
   // Get all events
@@ -41,13 +41,16 @@ export default async function DashboardPage() {
   };
   
   try {
-    const tickets = await getAllTicketCategories();
+    const ticketCategoriesData = await getAllTicketCategories();
     const now = new Date();
     
     ticketStats = {
-      total: tickets.length,
-      active: tickets.filter(t => new Date(t.ticketCategory.availableTo) > now).length,
-      totalQuantity: tickets.reduce((sum, t) => sum + t.ticketCategory.quantity, 0),
+      total: ticketCategoriesData.length,
+      active: ticketCategoriesData.filter(t => {
+        const availableTo = t.ticketCategory.availableTo ? new Date(t.ticketCategory.availableTo) : null;
+        return availableTo && availableTo > now;
+      }).length,
+      totalQuantity: ticketCategoriesData.reduce((sum, t) => sum + Number(t.ticketCategory.quantity), 0),
       soldQuantity: 0, // This would need to be calculated from sales data
     };
   } catch (error) {
@@ -146,18 +149,18 @@ export default async function DashboardPage() {
             color="bg-purple-100 text-purple-700"
           />
           <QuickActionCard 
-            title="Categories" 
-            description="Manage event categories"
-            icon='<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" /></svg>'
-            href="/dashboard/categories"
-            color="bg-amber-100 text-amber-700"
-          />
-          <QuickActionCard 
             title="Analytics" 
             description="View event and ticket statistics"
             icon='<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>'
             href="/dashboard/analytics"
             color="bg-emerald-100 text-emerald-700"
+          />
+          <QuickActionCard 
+            title="Categories" 
+            description="Manage event categories"
+            icon='<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" /></svg>'
+            href="/dashboard/categories"
+            color="bg-amber-100 text-amber-700"
           />
         </div>
       </div>
