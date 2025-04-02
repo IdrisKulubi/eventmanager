@@ -25,13 +25,12 @@ export function formatTime(date: Date | string) {
   return format(dateObject, "h:mm a");
 }
 
-export function formatCurrency(amount: number, options = {}): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-KE', {
     style: 'currency',
     currency: 'KES',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-    ...options
   }).format(amount);
 }
 
