@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, integer, primaryKey, serial, numeric, boolean, pgEnum, json, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { type AdapterAccount } from "next-auth/adapters";
 
 // Enum types
@@ -312,4 +313,14 @@ export const salesTargets = pgTable("sales_target", {
   return {
     yearMonthUnique: uniqueIndex("year_month_unique_idx").on(table.year, table.month)
   };
+});
+
+// System Settings Table
+export const systemSettings = pgTable('system_settings', {
+  id: text('id').primaryKey().notNull().default(sql`gen_random_uuid()`),
+  emailSettings: text('email_settings'),
+  generalSettings: text('general_settings'),
+  securitySettings: text('security_settings'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

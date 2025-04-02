@@ -164,9 +164,7 @@ This document outlines the detailed requirements for the Event Management System
 ### 6.7. Notification Module
 - Email and SMS notification for event updates,ticket purchase,etc.
 
-### 6.8. Seating Management Module
-- Seating layout creation.
-- Seating selection during ticket purchase.
+
 
 ## 7. Non-Functional Requirements
 
@@ -195,10 +193,8 @@ This document outlines the detailed requirements for the Event Management System
     -   Security implementation.
     -   Performance optimization.
     -   Testing and deployment.
-6. **Phase 6: Seating and Notification modules**
-    - Seating management implementation.
-    - Notification systems implementation.
-7. **Phase 7: Deployment and Maintenance**
+
+6. **Phase 7: Deployment and Maintenance**
     - Deployment to Vercel.
     - Ongoing maintenance and support.
 

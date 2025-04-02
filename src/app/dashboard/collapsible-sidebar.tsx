@@ -4,11 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "./sidebar-context";
+import { ModeToggle } from "@/components/shared/theme/theme-toggle";
 
 interface NavItem {
   name: string;
   href: string;
   icon: string;
+  adminOnly?: boolean;
 }
 
 interface SidebarProps {
@@ -101,6 +103,14 @@ export function CollapsibleSidebar({ navigation, user, signOut }: SidebarProps) 
             })}
           </ul>
         </nav>
+        
+        {/* Theme Toggle */}
+        <div className={`
+          border-t px-4 py-3 dark:border-gray-700
+          ${isCollapsed ? 'lg:flex lg:justify-center' : 'flex justify-end'}
+        `}>
+          <ModeToggle />
+        </div>
         
         {/* User profile */}
         <div className={`
