@@ -90,10 +90,27 @@ export default {
           '0%': { backgroundPosition: '-500px 0' },
           '100%': { backgroundPosition: '500px 0' },
         },
-        'pulse-bright': {
-          '0%, 100%': { opacity: 0.9 },
-          '50%': { opacity: 0.5 },
-        }
+        "sparkle-spin": {
+          "0%": { transform: "rotate(0deg) scale(0)", opacity: 0 },
+          "50%": { transform: "rotate(180deg) scale(1)", opacity: 1 },
+          "100%": { transform: "rotate(360deg) scale(0)", opacity: 0 },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: 0.7 },
+          "50%": { opacity: 0.2 },
+        },
+        "pulse-bright": {
+          "0%, 100%": { opacity: 1 },
+          "50%": { opacity: 0.5 },
+        },
+        "rotate": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
+        "rotate-reverse": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(-360deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -103,7 +120,14 @@ export default {
         "float-delay-2": "float-delay-2 8s ease-in-out infinite 2s",
         "glow": "glow 4s ease-in-out infinite",
         "shimmer": "shimmer 3s linear infinite",
-        "pulse-bright": "pulse-bright 2s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+        "sparkle-spin": "sparkle-spin 1500ms forwards",
+        "pulse-slow": "pulse-slow 6s ease-in-out infinite",
+        "pulse-bright": "pulse-bright 3s ease-in-out infinite",
+        "rotate": "rotate 40s linear infinite",
+        "rotate-reverse": "rotate-reverse 30s linear infinite",
+      },
+      backgroundSize: {
+        "400": "400% 100%",
       },
     },
   },
