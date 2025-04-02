@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { useInView } from 'react-intersection-observer';
+import { Ticket } from 'lucide-react';
 
 const CallToAction = () => {
   const { ref, inView } = useInView({
@@ -71,10 +72,11 @@ const CallToAction = () => {
             </Link>
             
             <Link 
-              href="/about" 
-              className="rounded-full bg-transparent border-2 border-purple-500 px-8 py-4 text-lg font-semibold text-white hover:bg-purple-500/10 transition-all duration-300 hover:shadow-purple-500/20 hover:shadow-lg"
+              href="/events" 
+              className="rounded-full bg-transparent border-2 border-purple-500 px-8 py-4 text-lg font-semibold text-white hover:bg-purple-500/10 transition-all duration-300 hover:shadow-purple-500/20 hover:shadow-lg flex items-center justify-center"
             >
-              Learn More
+              <Ticket className="w-5 h-5 mr-2 text-purple-400" />
+              Browse Events
             </Link>
           </div>
           

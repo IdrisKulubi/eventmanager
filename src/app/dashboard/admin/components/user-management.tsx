@@ -55,7 +55,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Search, MoreHorizontal, UserCog, Trash2, Shield} from 'lucide-react';
 import { getAllUsers, updateUserRole, deleteUser } from '@/lib/actions/admin.actions';
 import { toast } from 'sonner';
-
+import Image from 'next/image';
 interface User {
   id: string;
   name: string | null;
@@ -289,7 +289,7 @@ export function UserManagement() {
                         <TableCell>
                           <div className="w-10 h-10 rounded-full overflow-hidden bg-muted">
                             {user.image ? (
-                              <img 
+                              <Image 
                                 src={user.image} 
                                 alt={user.name || 'User'} 
                                 className="w-full h-full object-cover" 

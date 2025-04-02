@@ -11,16 +11,19 @@ import { CategoryTable } from "./components/category-table";
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-interface CategoriesPageProps {
-  searchParams: {
-    page?: string;
-    limit?: string;
-    search?: string;
-    sort?: string;
-  };
-}
+type SearchParams = {
+  page?: string;
+  limit?: string;
+  search?: string;
+  sort?: string;
+};
 
-export default async function CategoriesPage({ searchParams }: CategoriesPageProps) {
+export default async function CategoriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
   const session = await auth();
   
   // Check if user is authenticated and has required role
@@ -28,10 +31,10 @@ export default async function CategoriesPage({ searchParams }: CategoriesPagePro
     redirect('/sign-in');
   }
   
-  const page = Number(searchParams.page) || 1;
-  const limit = Number(searchParams.limit) || 10;
-  const search = searchParams.search || '';
-  const sort = searchParams.sort || 'name-asc';
+  const page = Number(params.page) || 1;
+  const limit = Number(params.limit) || 10;
+  const search = params.search || '';
+  const sort = params.sort || 'name-asc';
   
   const [sortField, sortOrder] = sort.split('-');
   

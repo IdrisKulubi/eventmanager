@@ -4,9 +4,9 @@ import { getVenueById } from '@/lib/actions/venue.actions';
 import { VenueForm } from '../../components/venue-form';
 
 interface EditVenuePageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function EditVenuePage({ params }: EditVenuePageProps) {
@@ -18,10 +18,10 @@ export default async function EditVenuePage({ params }: EditVenuePageProps) {
   }
   
   // Await params to follow Next.js 15 best practices
-  const awaitedParams = await params;
+  const resolvedParams = await params;
   
   // Get venue data
-  const venueData = await getVenueById(parseInt(awaitedParams.id));
+  const venueData = await getVenueById(parseInt(resolvedParams.id));
 
   if (!venueData) {
     redirect('/dashboard/venues');

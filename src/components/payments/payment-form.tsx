@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useState } from "react";
@@ -20,7 +21,6 @@ import { stkPushQueryWithIntervals } from "@/lib/actions/payment.actions";
 import { Loader2 } from "lucide-react";
 import STKPushQueryLoading from "./stk-push-query-loading";
 import PaymentSuccess from "./payment-success";
-import { useRouter } from "next/navigation";
 
 const paymentFormSchema = z.object({
   mpesa_phone: z.string().min(10, {
@@ -49,7 +49,6 @@ export default function PaymentForm({
   orderTotal,
   onSuccess,
 }: PaymentFormProps) {
-  const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
   const [stkQueryLoading, setStkQueryLoading] = useState<boolean>(false);

@@ -15,7 +15,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  TooltipProps
 } from "recharts";
 
 // Default color palette

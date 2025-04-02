@@ -75,7 +75,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   
   const [sortField, sortOrder] = sort.split('-');
   
-  const { events, count } = await getEvents({
+  const { events, pagination } = await getEvents({
     page,
     limit,
     search,
@@ -86,7 +86,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   });
   
   const categories = await getAllCategories();
-  const totalPages = Math.ceil(count / limit);
+  const totalPages = Math.ceil(pagination.totalEvents / limit);
   
   return (
     <div className="container py-10">

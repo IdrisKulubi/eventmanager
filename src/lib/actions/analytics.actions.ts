@@ -3,7 +3,6 @@
 import { auth } from "@/auth";
 import db from "@/db/drizzle";
 import { eq, and, gte, lte, count, sql, desc, asc, SQL } from "drizzle-orm";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { tickets, events, ticketCategories, orders, payments, venues, salesTargets } from "@/db/schema";
 import {
   TimePeriod,

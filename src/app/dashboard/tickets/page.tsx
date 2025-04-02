@@ -44,7 +44,7 @@ export default async function DashboardTicketsPage() {
   
   // Group tickets by event
   const ticketsByEvent = allTickets.reduce((acc, ticket) => {
-    const eventId = ticket.eventId;
+    const eventId = ticket.ticketCategory.eventId;
     if (!acc[eventId]) {
       acc[eventId] = [];
     }
@@ -144,7 +144,7 @@ export default async function DashboardTicketsPage() {
                         </TableCell>
                         <TableCell>
                           <Link 
-                            href={`/dashboard/events/${ticket.eventId}`}
+                            href={`/dashboard/events/${ticket.ticketCategory.eventId}`}
                             className="text-blue-600 hover:underline"
                           >
                             {ticket.eventTitle}
@@ -169,7 +169,6 @@ export default async function DashboardTicketsPage() {
                         <TableCell className="text-right">
                           <EditTicketModal 
                             ticket={ticket.ticketCategory}
-                            eventId={ticket.eventId}
                           />
                         </TableCell>
                       </TableRow>

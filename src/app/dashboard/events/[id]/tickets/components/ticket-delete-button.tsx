@@ -37,7 +37,7 @@ export function TicketDeleteButton({ id, name }: TicketDeleteButtonProps) {
         toast.success("Ticket category deleted successfully");
         router.refresh();
       } else {
-        throw new Error(result.error || "Failed to delete ticket category");
+        throw new Error( "Failed to delete ticket category");
       }
     } catch (error) {
       const errorMessage = error instanceof Error 

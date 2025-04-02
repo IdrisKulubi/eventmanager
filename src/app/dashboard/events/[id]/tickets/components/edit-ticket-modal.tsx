@@ -54,10 +54,9 @@ interface EditTicketModalProps {
     isVIP: boolean | null;
     maxPerOrder: number | null;
   };
-  eventId: number;
 }
 
-export function EditTicketModal({ ticket, eventId }: EditTicketModalProps) {
+export function EditTicketModal({ ticket }: EditTicketModalProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
@@ -82,11 +81,10 @@ export function EditTicketModal({ ticket, eventId }: EditTicketModalProps) {
   const onSubmit = async (data: TicketFormValues) => {
     try {
       setIsSubmitting(true);
-      const result = await updateTicketCategory(ticket.id, {
+      const result = await updateTicketCategory({
+        id: ticket.id,
         ...data,
-        eventId,
-        availableFrom: new Date(data.availableFrom),
-        availableTo: new Date(data.availableTo),
+        
       });
 
       if (result.success) {
@@ -94,7 +92,7 @@ export function EditTicketModal({ ticket, eventId }: EditTicketModalProps) {
         setOpen(false);
         router.refresh();
       } else {
-        toast.error(result.error || 'Failed to update ticket');
+        toast.error('Failed to update ticket');
       }
     } catch (error) {
       console.error('Error updating ticket:', error);

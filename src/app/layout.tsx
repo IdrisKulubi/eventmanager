@@ -6,6 +6,9 @@ import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "./api/uploadthing/core";
 import { ThemeProvider } from '@/components/shared/theme/theme-provider';
+import { Providers } from '@/app/providers';
+import { AuthProvider } from '@/components/providers/session-provider';
+
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,11 +31,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NextSSRPlugin 
-            routerConfig={extractRouterConfig(ourFileRouter)} 
-          />
-          {children}
-          <Toaster position="top-center" />
+          <Providers>
+            <NextSSRPlugin 
+              routerConfig={extractRouterConfig(ourFileRouter)} 
+            />
+            <AuthProvider>
+                  {children}
+                  <Toaster position="top-center" />
+           
+            </AuthProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>
