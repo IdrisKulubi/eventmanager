@@ -95,7 +95,7 @@ export default function EventPage() {
                 </div>
                 <div className="flex items-center">
                   <MapPin className="w-5 h-5 mr-3 text-purple-400" />
-                  <span className="text-zinc-200">Nebula Arena</span>
+                  <span className="text-zinc-200">Main Auditorium   </span>
                 </div>
                 <div className="flex items-center">
                   <Users className="w-5 h-5 mr-3 text-purple-400" />
@@ -107,7 +107,7 @@ export default function EventPage() {
             <div className="lg:border-l lg:border-purple-900/30 lg:pl-8 flex flex-col justify-center">
               <div className="text-center p-6 bg-gradient-to-br from-purple-900/20 to-zinc-900/60 rounded-lg border border-purple-900/20">
                 <div className="text-sm text-zinc-400 mb-1">Starting from</div>
-                <div className="text-3xl font-bold text-white mb-4">$149</div>
+                <div className="text-3xl font-bold text-white mb-4">ksh149</div>
                 
                 <Button 
                   className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-700 hover:to-purple-900 text-white border-0 mb-3"

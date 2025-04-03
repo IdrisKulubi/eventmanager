@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
 import { eq } from 'drizzle-orm'
 import type { NextAuthConfig } from 'next-auth'
@@ -13,7 +14,6 @@ export const config = {
     signIn: '/sign-in',
     error: '/sign-in',
     signOut: '/sign-out',
-
   },
   session: {
     strategy: 'jwt',
@@ -75,21 +75,6 @@ export const config = {
             .set({ name: token.name })
             .where(eq(users.id, user.id));
         }
-
-        if (trigger === 'signIn' || trigger === 'signUp') {
-          try {
-            const response = await fetch(new URL('/api/cart/merge', process.env.NEXTAUTH_URL).toString(), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: user.id }),
-            });
-            if (!response.ok) {
-              console.error('Failed to merge carts');
-            }
-          } catch (error) {
-            console.error('Error merging carts:', error);
-          }
-        }
       }
 
       if (session?.user.name && trigger === 'update') {
@@ -105,14 +90,7 @@ export const config = {
     },
     authorized({ request, auth }: any) {
       const protectedPaths = [
-        /\/shipping-address/,
-        /\/payment-method/,
-        /\/place-order/,
         /\/profile/,
-        /\/onboard/,
-        /\/payment\/(.*)/,
-        /\/user\/(.*)/,
-        /\/order\/(.*)/,
         /\/admin/,
       ]
       const { pathname } = request.nextUrl

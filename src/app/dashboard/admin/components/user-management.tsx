@@ -293,6 +293,8 @@ export function UserManagement() {
                                 src={user.image} 
                                 alt={user.name || 'User'} 
                                 className="w-full h-full object-cover" 
+                                width={40}
+                                height={40}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-lg font-semibold">

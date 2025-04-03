@@ -33,20 +33,7 @@ export default async function EventsLayout({ children }: EventsLayoutProps) {
               EventManager
             </Link>
             
-            <nav className="hidden md:flex space-x-8 text-sm font-medium">
-              <Link href="/events" className="text-white hover:text-purple-300 transition-colors py-2 border-b-2 border-purple-500">
-                All Events
-              </Link>
-              <Link href="/events/categories" className="text-zinc-400 hover:text-purple-300 transition-colors py-2">
-                Categories
-              </Link>
-              <Link href="/events/venues" className="text-zinc-400 hover:text-purple-300 transition-colors py-2">
-                Venues
-              </Link>
-              <Link href="/events/artists" className="text-zinc-400 hover:text-purple-300 transition-colors py-2">
-                Artists
-              </Link>
-            </nav>
+           
           </div>
           
           <div className="flex items-center space-x-4">
