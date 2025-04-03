@@ -1,56 +1,46 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { SignInWithGoogle } from "@/lib/actions/user.actions";
+import { useFormStatus } from "react-dom";
 import Image from "next/image";
-import { signIn } from "next-auth/react";
 
 export default function GoogleSignInForm() {
-  const [isPending, setIsPending] = useState(false);
-  const [hasError, setHasError] = useState(false);
-
-  const handleGoogleSignIn = async () => {
-    try {
-      console.log("[CLIENT] Starting Google sign-in from client component");
-      setIsPending(true);
-      setHasError(false);
-     
-      await signIn("google", { 
-        callbackUrl: "/" 
-      });
-      
-      console.log("[CLIENT] Sign-in completed (unlikely to see this due to redirect)");
-    } catch (error) {
-      console.error("[CLIENT] Unexpected error during sign-in:", error);
-      setHasError(true);
-      setIsPending(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
+  const SignInButton = () => {
+    const { pending } = useFormStatus();
+    return (
       <Button
-        onClick={handleGoogleSignIn}
-        disabled={isPending}
-        className="w-full flex items-center justify-center gap-2 h-12 bg-black/60  text-white border border-gray-700 cursor-pointer p-2"
-        variant="outline"
+        disabled={pending}
+        className="w-full flex items-center justify-center gap-3 h-14 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/30 rounded-xl border border-purple-500/30 transition-all duration-300 transform hover:scale-[1.01] hover:shadow-purple-500/40"
+        variant="default"
         aria-label="sign in with google"
       >
-        {!isPending && (
-          <Image
-            src="/assets/icons/google.svg"
-            alt="Google"
-            width={20}
-            height={20}
-          />
+        {!pending && (
+          <div className="relative bg-white p-1.5 rounded-full">
+            <Image
+              src="/assets/icons/google.svg"
+              alt="Google"
+              width={20}
+              height={20}
+              className="relative z-10"
+            />
+          </div>
         )}
-        {isPending ? "Redirecting..." : "Continue with Google"}
+        <span className="font-medium text-sm">
+          {pending ? (
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin"></div>
+              <span>Connecting...</span>
+            </div>
+          ) : (
+            "Continue with Google"
+          )}
+        </span>
       </Button>
-      
-      {hasError && (
-        <p className="text-red-500 text-sm text-center">
-          There was an error with Google sign-in. Please try again.
-        </p>
-      )}
-    </div>
+    );
+  };
+  return (
+    <form action={SignInWithGoogle}>
+      <SignInButton />
+    </form>
   );
 }

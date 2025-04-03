@@ -33,7 +33,7 @@ export default async function EventsLayout({ children }: EventsLayoutProps) {
               EventManager
             </Link>
             
-            
+           
           </div>
           
           <div className="flex items-center space-x-4">

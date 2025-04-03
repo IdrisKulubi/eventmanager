@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { getRequiredAuthSession } from '@/lib/auth';
+import { auth } from '@/auth';
 import { systemSettings, users } from '@/db/schema';
 import { eq, count } from 'drizzle-orm';
 import { z } from 'zod';
@@ -61,8 +61,8 @@ const SystemSettingsUpdateSchema = z.object({
 export async function getSystemSettings() {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -140,8 +140,8 @@ export async function updateSystemSettings(data: z.infer<typeof SystemSettingsUp
     const validatedData = SystemSettingsUpdateSchema.parse(data);
     
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -204,8 +204,8 @@ export async function updateSystemSettings(data: z.infer<typeof SystemSettingsUp
 export async function getUsers(page = 1, limit = 10) {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -246,8 +246,8 @@ export async function getUsers(page = 1, limit = 10) {
 export async function updateUserRole(userId: string, role: string) {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -272,8 +272,8 @@ export async function updateUserRole(userId: string, role: string) {
 export async function getPaymentConfig() {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -319,8 +319,8 @@ export async function getPaymentConfig() {
 export async function updatePaymentConfig(type: string, config: Record<string, unknown>) {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -345,8 +345,8 @@ export async function updatePaymentConfig(type: string, config: Record<string, u
 export async function getAllUsers() {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
@@ -370,8 +370,8 @@ export async function getAllUsers() {
 export async function deleteUser(userId: string) {
   try {
     // Verify the user is authenticated and has admin role
-    const session = await getRequiredAuthSession();
-    if (session.user.role !== 'admin') {
+    const session = await auth();
+    if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 

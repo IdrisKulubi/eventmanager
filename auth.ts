@@ -1,20 +1,24 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
+import { eq } from 'drizzle-orm'
 import type { NextAuthConfig } from 'next-auth'
 import NextAuth from 'next-auth'
+
 import Google from 'next-auth/providers/google'
+
 import db from './db/drizzle'
 import { users } from './db/schema'
 
 export const config = {
 
   pages: {
-    signIn: '/auth/login',
+    signIn: '/sign-in',
+    error: '/sign-in',
     signOut: '/sign-out',
-    error: '/auth/login',
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   adapter: DrizzleAdapter(db),
   providers: [
@@ -32,95 +36,72 @@ export const config = {
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      if (!user.email) return false;
-      
-      try {
-        // Check if user exists
-        const existingUser = await db.query.users.findFirst({
-          where: (users, { eq }) => eq(users.email, user.email as string),
-        });
-
-        if (!existingUser) {
-          // Create new user with default role
-          await db.insert(users).values({
-            id: user.id as string,  
-            name: user.name as string,
-            email: user.email,
-            image: user.image,
-            role: 'user',
-          });
-        }
-        
-        return true;
-      } catch (error) {
-        console.error('Error in signIn callback:', error);
-        return false;
-      }
-    },
-    async jwt({ token, user, trigger, session }) {
-      if (user?.email) {
-        try {
-          const dbUser = await db.query.users.findFirst({
-            where: (users, { eq }) => eq(users.email, user.email as string),
+    jwt: async ({ token, user, trigger, session, account }: any) => {
+      if (user) {
+        if (account?.provider === 'google') {
+          const existingUser = await db.query.users.findFirst({
+            where: (users, { eq }) => eq(users.email, user.email),
           });
 
-          if (dbUser) {
-            token.role = dbUser.role;
+          if (existingUser) {
+            token.role = existingUser.role;
+          } else {
+            token.role = 'user';
+
+            const userId = crypto.randomUUID();
+            await db.insert(users).values({
+              id: userId,
+              name: user.name,
+              email: user.email,
+              emailVerified: new Date(),
+              image: user.image,
+              role: 'user'
+            }).onConflictDoUpdate({
+              target: users.email,
+              set: {
+                name: user.name,
+                image: user.image,
+                emailVerified: new Date()
+              }
+            });
           }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
+        } else {
+          token.role = user.role;
+        }
+
+        if (user.name === 'NO_NAME') {
+          token.name = user.email!.split('@')[0];
+          await db
+            .update(users)
+            .set({ name: token.name })
+            .where(eq(users.id, user.id));
         }
       }
 
-      // Handle profile updates
-      if (session?.user && trigger === 'update') {
-        if (session.user.role) token.role = session.user.role;
+      if (session?.user.name && trigger === 'update') {
+        token.name = session.user.name;
       }
 
       return token;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub as string;
-        session.user.role = token.role as string;
-      }
-      return session;
+    session: async ({ session, token }: any) => {
+      session.user.id = token.sub
+      session.user.role = token.role
+      return session
     },
-    authorized({ request, auth }) {
-      // Protected paths that require authentication
+    authorized({ request, auth }: any) {
       const protectedPaths = [
-        /\/dashboard\/(.*)/,
+        /\/profile/,
+        /\/admin/,
       ]
-      
-      // Admin paths that require specific roles
-      const adminPaths = [
-        /\/dashboard\/events(.*)/,
-        /\/dashboard\/venues(.*)/,
-        /\/dashboard\/categories(.*)/,
-        /\/dashboard\/users(.*)/,
-      ]
-      
       const { pathname } = request.nextUrl
-      
-      // Check if path requires authentication
-      const requiresAuth = protectedPaths.some((p) => p.test(pathname))
-      
-      // Check if path requires admin role
-      const requiresAdminRole = adminPaths.some((p) => p.test(pathname))
-      
-      // If admin path, check for admin or manager role
-      if (requiresAdminRole) {
-        return !!auth?.user && (auth.user.role === 'admin' || auth.user.role === 'manager')
-      }
-      
-      // For other protected paths, just check if authenticated
-      return !requiresAuth || !!auth
+      return !protectedPaths.some((p) => p.test(pathname)) || !!auth
+    },
+    signIn: async ({ user, account }: any) => {
+      console.log('🔑 Sign in callback triggered:', { user, account });
+      return true;
     },
   },
-  debug: process.env.NODE_ENV === "development",
-  secret: process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config)
-
