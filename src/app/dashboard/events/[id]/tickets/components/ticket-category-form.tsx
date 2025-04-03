@@ -200,16 +200,19 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Price (KES)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min="0" 
-                      step="0.01" 
-                      placeholder="0.00" 
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                      <span className="text-gray-500">Ksh</span>
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="29.99"
+                      className="pl-12"
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
-                  </FormControl>
+                  </div>
                   <FormDescription>
                     The price of this ticket in KES
                   </FormDescription>
