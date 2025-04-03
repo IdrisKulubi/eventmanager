@@ -10,6 +10,7 @@ import db from './db/drizzle'
 import { users } from './db/schema'
 
 export const config = {
+
   pages: {
     signIn: '/sign-in',
     error: '/sign-in',

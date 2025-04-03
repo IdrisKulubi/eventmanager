@@ -181,7 +181,7 @@ export default function EventPage() {
                           </Badge>
                         </div>
                         <p className="text-zinc-400 mt-1 mb-3 text-sm">{ticket.description}</p>
-                        <div className="text-xl font-bold text-white">${ticket.price}</div>
+                        <div className="text-xl font-bold text-white">Ksh {ticket.price}</div>
                       </div>
                       
                       <div className="flex items-center space-x-3">
@@ -234,7 +234,7 @@ export default function EventPage() {
                           return (
                             <div key={type} className="flex justify-between text-sm mb-2">
                               <span className="text-zinc-300">{ticketType.name} × {count}</span>
-                              <span className="text-white">${ticketType.price * count}</span>
+                              <span className="text-white">Ksh {ticketType.price * count}</span>
                             </div>
                           );
                         })}
@@ -243,7 +243,7 @@ export default function EventPage() {
                         
                         <div className="flex justify-between font-semibold">
                           <span className="text-zinc-200">Total</span>
-                          <span className="text-white">${totalAmount}</span>
+                          <span className="text-white">Ksh {totalAmount}</span>
                         </div>
                       </div>
                       

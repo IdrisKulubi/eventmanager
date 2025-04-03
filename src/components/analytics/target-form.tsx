@@ -160,7 +160,7 @@ export function TargetForm({
                 <FormControl>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
-                      $
+                      Ksh
                     </span>
                     <Input {...field} className="pl-8" placeholder="25000" />
                   </div>

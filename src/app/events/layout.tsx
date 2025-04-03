@@ -44,13 +44,13 @@ export default async function EventsLayout({ children }: EventsLayoutProps) {
             ) : (
               <>
                 <Link 
-                  href="/signin" 
+                  href="/sign-in" 
                   className="hidden md:inline-flex items-center px-4 py-2 rounded-full border border-purple-500 text-purple-400 hover:bg-purple-500/10 transition-all duration-300"
                 >
                   Sign In
                 </Link>
                 <Link 
-                  href="/signup" 
+                  href="/sign-up" 
                   className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-sm hover:shadow-purple-500/25 transition-all duration-300"
                 >
                   Sign Up

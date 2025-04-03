@@ -76,10 +76,10 @@ export const columns: ColumnDef<TicketCategory>[] = [
     header: "Price",
     cell: ({ row }) => {
       const price = parseFloat(row.getValue("price"));
-      return new Intl.NumberFormat("en-KE", {
-        style: "currency",
-        currency: "KES",
-      }).format(price);
+      return `Ksh ${price.toLocaleString('en-KE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`;
     },
   },
   {
