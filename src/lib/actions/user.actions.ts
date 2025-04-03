@@ -1,9 +1,12 @@
-import { signOut } from "../../../auth"
+'use server'
+
+import { signIn, signOut } from "../../../auth"
 
 export const SignInWithGoogle = async () => {
-    throw new Error("This server action shouldn't be called directly from client components. Use the client-side signIn function from next-auth/react instead.")
-  }
+  await signIn('google')
+}
     
-  export const SignOut = async () => {
-    await signOut()
-  }
+  
+export const SignOut = async () => {
+  await signOut()
+}
