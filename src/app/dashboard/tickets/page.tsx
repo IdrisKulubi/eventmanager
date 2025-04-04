@@ -31,18 +31,15 @@ import { EditTicketModal } from '../events/[id]/tickets/components/edit-ticket-m
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardTicketsPage() {
-  // Check authorization
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
     redirect('/sign-in');
   }
   
-  // Get all events and tickets
   const { events } = await getEvents({ status: 'published' });
   const allTickets = await getAllTicketCategories();
   
-  // Group tickets by event
   const ticketsByEvent = allTickets.reduce((acc, ticket) => {
     const eventId = ticket.ticketCategory.eventId;
     if (!acc[eventId]) {

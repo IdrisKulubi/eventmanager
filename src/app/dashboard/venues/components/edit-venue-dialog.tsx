@@ -25,10 +25,8 @@ export function EditVenueDialog({ venueId }: EditVenueDialogProps) {
   const [venue, setVenue] = useState<Venue | null>(null);
   const router = useRouter();
   
-  // Reset venue state when dialog is closed
   useEffect(() => {
     if (!open) {
-      // Small delay to avoid UI flicker
       const timer = setTimeout(() => {
         setVenue(null);
       }, 300);
@@ -39,12 +37,10 @@ export function EditVenueDialog({ venueId }: EditVenueDialogProps) {
   const handleOpen = async (isOpen: boolean) => {
     setOpen(isOpen);
     
-    // If closing, just let the useEffect handle cleanup
     if (!isOpen) {
       return;
     }
     
-    // Fetch venue data if opening and no data
     if (isOpen && !venue) {
       try {
         setLoading(true);
@@ -73,7 +69,6 @@ export function EditVenueDialog({ venueId }: EditVenueDialogProps) {
     router.refresh();
   };
 
-  // Format venue data for the form
   const getFormData = (venue: Venue) => {
     return {
       id: venue.id,

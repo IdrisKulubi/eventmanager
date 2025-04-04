@@ -24,7 +24,6 @@ export default async function EventDetailsPage({
 }) {
   const resolvedParams = await params;
   
-  // Check authorization
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
@@ -33,14 +32,12 @@ export default async function EventDetailsPage({
   
   const eventId = parseInt(resolvedParams.id);
   
-  // Get event details
   const event = await getEventById(eventId);
   
   if (!event) {
     redirect('/dashboard/events');
   }
 
-  // Default image if none provided
   const imageUrl = event.bannerImage || "/placeholder-event.jpg";
   
   return (
@@ -118,7 +115,6 @@ export default async function EventDetailsPage({
                 )}
               </div>
               
-              {/* Event Time */}
               <div className="flex items-start gap-3">
                 <CalendarIcon className="h-5 w-5 text-primary mt-0.5" />
                 <div>
@@ -184,7 +180,6 @@ export default async function EventDetailsPage({
             </CardContent>
           </Card>
           
-          {/* Description */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Description</CardTitle>
@@ -197,9 +192,7 @@ export default async function EventDetailsPage({
           </Card>
         </div>
         
-        {/* Sidebar */}
         <div className="space-y-6">
-          {/* Meta Information */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Event Information</CardTitle>
@@ -210,20 +203,16 @@ export default async function EventDetailsPage({
                 <span className="text-muted-foreground">Event ID:</span>
                 <span className="font-mono">{event.id}</span>
               </div>
-              
-              {/* Creation Date */}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Created:</span>
                 <span>{format(new Date(event.createdAt), "MMM d, yyyy")}</span>
               </div>
               
-              {/* Last Updated */}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Last Updated:</span>
                 <span>{format(new Date(event.updatedAt), "MMM d, yyyy")}</span>
               </div>
               
-              {/* Public/Private */}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Visibility:</span>
                 <span>{event.isPublic ? "Public" : "Private"}</span>
@@ -231,7 +220,6 @@ export default async function EventDetailsPage({
             </CardContent>
           </Card>
           
-          {/* Quick Actions */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Quick Actions</CardTitle>

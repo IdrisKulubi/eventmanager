@@ -18,21 +18,18 @@ import { QuickActionCard } from "./components/quick-action-card";
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  // Check authorization
   const session = await auth();
   
   if (!session) {
     redirect('/sign-in');
   }
   
-  // Get all events
   const { events, pagination } = await getEvents({});
   const publishedEvents = events.filter(event => event.status === 'published');
   const upcomingEvents = events.filter(
     event => new Date(event.startDate) > new Date()
   ).slice(0, 5);
   
-  // Get all ticket categories
   let ticketStats = {
     total: 0,
     active: 0,
@@ -51,13 +48,12 @@ export default async function DashboardPage() {
         return availableTo && availableTo > now;
       }).length,
       totalQuantity: ticketCategoriesData.reduce((sum, t) => sum + Number(t.ticketCategory.quantity), 0),
-      soldQuantity: 0, // This would need to be calculated from sales data
+      soldQuantity: 0, 
     };
   } catch (error) {
     console.error("Error fetching ticket stats:", error);
   }
   
-  // Calculate stats
   const stats = [
     {
       name: "Total Events",
@@ -109,7 +105,6 @@ export default async function DashboardPage() {
         </div>
       </div>
       
-      {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <Card key={stat.name} className="overflow-hidden">

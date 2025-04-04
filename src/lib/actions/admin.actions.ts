@@ -48,7 +48,6 @@ type SystemSettingsData = {
   security?: SecuritySettings;
 };
 
-// Define a Zod schema for validation
 const SystemSettingsUpdateSchema = z.object({
   type: z.enum(['email', 'general', 'security']),
   settings: z.record(z.any()),
@@ -60,13 +59,11 @@ const SystemSettingsUpdateSchema = z.object({
  */
 export async function getSystemSettings() {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Fetch settings from database
     const settingsRecord = await db.query.systemSettings.findFirst();
     
     if (!settingsRecord) {
@@ -107,7 +104,6 @@ export async function getSystemSettings() {
       };
     }
 
-    // Parse the settings JSON
     const settings: SystemSettingsData = {};
     
     if (settingsRecord.emailSettings) {
@@ -136,19 +132,15 @@ export async function getSystemSettings() {
  */
 export async function updateSystemSettings(data: z.infer<typeof SystemSettingsUpdateSchema>) {
   try {
-    // Validate input data
     const validatedData = SystemSettingsUpdateSchema.parse(data);
     
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Fetch existing settings
     const existingSettings = await db.query.systemSettings.findFirst();
     
-    // Prepare update data based on settings type
     const updateData: Record<string, string> = {};
     
     switch (validatedData.type) {
@@ -163,7 +155,6 @@ export async function updateSystemSettings(data: z.infer<typeof SystemSettingsUp
         break;
     }
     
-    // Update or insert settings
     if (existingSettings) {
       await db
         .update(systemSettings)
@@ -180,7 +171,6 @@ export async function updateSystemSettings(data: z.infer<typeof SystemSettingsUp
       });
     }
     
-    // Revalidate relevant paths
     revalidatePath('/dashboard/admin');
     
     return { success: true };
@@ -203,16 +193,13 @@ export async function updateSystemSettings(data: z.infer<typeof SystemSettingsUp
  */
 export async function getUsers(page = 1, limit = 10) {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Calculate offset for pagination
     const offset = (page - 1) * limit;
     
-    // Fetch users with pagination
     const usersData = await db.query.users.findMany({
       limit,
       offset,
@@ -245,17 +232,14 @@ export async function getUsers(page = 1, limit = 10) {
  */
 export async function updateUserRole(userId: string, role: string) {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Logic to update user role would go here
-    // This is a stub for now
+    
     console.log(`Updating user ${userId} to role ${role}`);
     
-    // Revalidate relevant paths
     revalidatePath('/dashboard/admin');
     
     return { success: true };
@@ -266,19 +250,16 @@ export async function updateUserRole(userId: string, role: string) {
 }
 
 /**
- * Get payment gateway configuration
- * @returns Payment gateway configuration or error
+ * @returns 
  */
 export async function getPaymentConfig() {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Logic to fetch payment config would go here
-    // This is a stub for now
+ 
     
     return {
       config: {
@@ -311,24 +292,21 @@ export async function getPaymentConfig() {
 }
 
 /**
- * Update payment gateway configuration
- * @param type Type of payment settings
- * @param config Configuration data
- * @returns Object indicating success or error
+ * @param type 
+ * @param config 
+ * @returns 
  */
+ 
 export async function updatePaymentConfig(type: string, config: Record<string, unknown>) {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Logic to update payment config would go here
-    // This is a stub for now
+  
     console.log(`Updating ${type} payment config:`, config);
     
-    // Revalidate relevant paths
     revalidatePath('/dashboard/admin');
     
     return { success: true };
@@ -339,18 +317,15 @@ export async function updatePaymentConfig(type: string, config: Record<string, u
 }
 
 /**
- * Get all users without pagination
  * @returns All users or error
  */
 export async function getAllUsers() {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Fetch all users from database
     const usersData = await db.query.users.findMany({
       orderBy: users.createdAt,
     });
@@ -363,23 +338,19 @@ export async function getAllUsers() {
 }
 
 /**
- * Delete a user
  * @param userId User ID to delete
  * @returns Object indicating success or error
  */
 export async function deleteUser(userId: string) {
   try {
-    // Verify the user is authenticated and has admin role
     const session = await auth();
     if (session?.user.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' };
     }
 
-    // Logic to delete user would go here
-    // This is a stub for now
+   
     console.log(`Deleting user with ID: ${userId}`);
     
-    // Revalidate relevant paths
     revalidatePath('/dashboard/admin');
     
     return { success: true };

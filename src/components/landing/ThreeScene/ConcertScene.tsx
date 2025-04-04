@@ -16,19 +16,16 @@ import { gsap } from 'gsap';
 import { useInView } from 'react-intersection-observer';
 import ThreeJSWrapper from '@/components/shared/ThreeJSWrapper';
 
-// Individual objects for the scene
 const Stage = () => {
   const stageRef = useRef<THREE.Mesh>(null);
   const floorRef = useRef<THREE.Mesh>(null);
   const [animationTriggered, setAnimationTriggered] = useState(false);
   
-  // Use useInView with ref callback pattern for better reliability
   const [inViewRef, inView] = useInView({
     threshold: 0.1,
     triggerOnce: true,
   });
   
-  // Register the observer on an actual DOM element, not a Three.js object
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const element = document.getElementById('scene-trigger');
@@ -38,7 +35,6 @@ const Stage = () => {
     }
   }, [inViewRef]);
   
-  // Run animation when element comes into view
   useEffect(() => {
     if (inView && stageRef.current && !animationTriggered) {
       setAnimationTriggered(true);
@@ -52,7 +48,6 @@ const Stage = () => {
 
   return (
     <group>
-      {/* Stage platform */}
       <mesh 
         ref={stageRef}
         position={[0, -1, 0]} 
@@ -62,7 +57,6 @@ const Stage = () => {
         <meshStandardMaterial color="#232323" roughness={0.8} metalness={0.3} />
       </mesh>
       
-      {/* Stage floor with grid */}
       <mesh 
         ref={floorRef}
         position={[0, -0.24, 0]} 
@@ -84,7 +78,6 @@ const Stage = () => {
   );
 };
 
-// Animated spotlight beams
 const SpotLights = () => {
   const light1Ref = useRef<THREE.Group>(null);
   const light2Ref = useRef<THREE.Group>(null);
@@ -162,7 +155,6 @@ const SpotLights = () => {
   );
 };
 
-// Animated floating speakers
 const Speakers = () => {
   const speaker1Ref = useRef<THREE.Group>(null);
   const speaker2Ref = useRef<THREE.Group>(null);
@@ -196,7 +188,6 @@ const Speakers = () => {
   );
 };
 
-// Floating particles effect
 const ParticleSystem = () => {
   return (
     <Sparkles 
@@ -210,20 +201,17 @@ const ParticleSystem = () => {
   );
 };
 
-// Background screen with text animation
 const BackScreen = () => {
   const screenRef = useRef<THREE.Mesh>(null);
   
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     if (screenRef.current && screenRef.current.material) {
-      // Type assertion to ShaderMaterial which has uniforms
       const material = screenRef.current.material as THREE.ShaderMaterial;
       material.uniforms.uTime.value = t;
     }
   });
 
-  // Custom shader for animated background
   const screenShader = {
     uniforms: {
       uTime: { value: 0 },
@@ -278,14 +266,12 @@ const CenterObject = () => {
     const t = clock.getElapsedTime();
     
     if (torusRef.current) {
-      // Respond to mouse position
       const x = (mouse.x * viewport.width) / 5;
       const y = (mouse.y * viewport.height) / 5;
       
       torusRef.current.rotation.x = t * 0.5 + y * 0.2;
       torusRef.current.rotation.y = t * 0.3 + x * 0.2;
       
-      // Fix any type with proper typing
       const distort = 0.3 + Math.sin(t) * 0.1;
       if (torusRef.current.material) {
         const material = torusRef.current.material as THREE.Material & { distort: number };
@@ -310,11 +296,9 @@ const CenterObject = () => {
   );
 };
 
-// Scene composition component
 const SceneComposition = () => {
   return (
     <>
-      {/* Camera setup */}
       <PerspectiveCamera 
         makeDefault 
         position={[0, 5, 15]} 
@@ -327,11 +311,9 @@ const SceneComposition = () => {
         minPolarAngle={Math.PI / 4}
       />
       
-      {/* Ambient and environment setup */}
       <ambientLight intensity={0.2} />
       <Environment preset="night" />
       
-      {/* Scene elements */}
       <Stage />
       <Speakers />
       <SpotLights />
@@ -342,11 +324,9 @@ const SceneComposition = () => {
   );
 };
 
-// Main component wrapper
 const ConcertScene = () => {
   return (
     <ThreeJSWrapper>
-      {/* This is a real DOM element that IntersectionObserver can observe */}
       <div 
         id="scene-trigger" 
         className="absolute inset-0 pointer-events-none" 

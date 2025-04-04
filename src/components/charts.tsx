@@ -17,22 +17,18 @@ import {
   Legend,
 } from "recharts";
 
-// Default color palette
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"];
 
-// Generic data item type
 interface DataItem {
   name: string;
   [key: string]: string | number;
 }
 
-// Type for the label function in PieChart
 interface PieLabelProps {
   name: string;
   percent: number;
 }
 
-// LineChart Component
 interface LineChartProps {
   data: DataItem[];
   categories: string[];

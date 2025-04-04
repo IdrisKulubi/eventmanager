@@ -25,13 +25,10 @@ interface SidebarProviderProps {
 }
 
 export function SidebarProvider({ children }: SidebarProviderProps) {
-  // For mobile sidebar (hidden/shown)
   const [isOpen, setIsOpen] = useState(false);
   
-  // For desktop sidebar (expanded/collapsed)
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Check for saved collapsed state on mount
   useEffect(() => {
     const savedCollapsedState = localStorage.getItem("sidebarCollapsed");
     if (savedCollapsedState) {
@@ -39,7 +36,6 @@ export function SidebarProvider({ children }: SidebarProviderProps) {
     }
   }, []);
 
-  // Close sidebar on screen resize if it was open
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 1024) {

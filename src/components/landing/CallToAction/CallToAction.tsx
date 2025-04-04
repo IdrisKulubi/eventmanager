@@ -16,7 +16,6 @@ const CallToAction = () => {
   
   useEffect(() => {
     if (inView && bgRef.current) {
-      // Animate the background
       gsap.to(bgRef.current, {
         backgroundPosition: '200% 50%',
         duration: 20,

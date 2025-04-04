@@ -9,7 +9,6 @@ import { finalizeTicketsAfterPayment } from "./ticket.actions";
 import axios from "axios";
 import { stkPushQuery } from "./stkPushQuery";
 
-// Valid M-PESA callback item structure
 interface MPesaCallbackItem {
   Name: string;
   Value: string | number;
@@ -42,9 +41,7 @@ interface MPesaCallbackData {
   };
 }
 
-/**
- * Initiates an M-PESA STK push payment request
- */
+
 export async function sendStkPush(data: {
   mpesa_number: string;
   amount: number;
@@ -71,7 +68,6 @@ export async function sendStkPush(data: {
       return { error: "Not authorized to pay for this order" };
     }
 
-    // Format phone number (remove leading zero and add country code if needed)
     let phoneNumber = data.mpesa_number.trim();
     if (phoneNumber.startsWith('0')) {
       phoneNumber = '254' + phoneNumber.substring(1);
@@ -80,7 +76,6 @@ export async function sendStkPush(data: {
       phoneNumber = '254' + phoneNumber;
     }
 
-    // Set M-PESA API URL based on environment
     const mpesaEnv = process.env.MPESA_ENVIRONMENT;
     const MPESA_BASE_URL =
       mpesaEnv === "live"
@@ -132,7 +127,6 @@ export async function sendStkPush(data: {
 
     const token = tokenResponse.data.access_token;
 
-    // Make the STK push request
     const stkResponse = await axios.post(
       `${MPESA_BASE_URL}/mpesa/stkpush/v1/processrequest`,
       requestBody,
@@ -146,11 +140,11 @@ export async function sendStkPush(data: {
 
     const stkResult = stkResponse.data;
 
-    // Store the payment request in the database
+    
     const [payment] = await db.insert(payments)
       .values({
         orderId: data.orderId,
-        amount: data.amount.toString(), // Convert to string for Drizzle numeric type
+        amount: data.amount.toString(), 
         method: 'mpesa',
         status: 'pending',
         mpesaPhoneNumber: phoneNumber,
@@ -172,9 +166,7 @@ export async function sendStkPush(data: {
   }
 }
 
-/**
- * Check the status of an STK push with intervals
- */
+
 export async function stkPushQueryWithIntervals(checkoutRequestId: string, maxAttempts = 10) {
   let attempts = 0;
   
@@ -188,23 +180,18 @@ export async function stkPushQueryWithIntervals(checkoutRequestId: string, maxAt
         return { success: false, error: "Failed to query payment status" };
       }
       
-      // Check if the payment is complete
       if (data.ResultCode === 0) {
         return { success: true, data };
       }
       
-      // If payment failed
       if (data.ResultCode !== null && data.ResultCode !== undefined && data.ResultCode !== 1032) {
-        // 1032 is "Request cancelled by user" - we might want to continue checking in this case
         return { success: false, data };
       }
       
-      // If we've reached max attempts, stop checking
       if (attempts >= maxAttempts) {
         return { success: false, error: "Max attempts reached" };
       }
       
-      // Wait and try again
       await new Promise(resolve => setTimeout(resolve, 5000));
       return await checkStatus();
     } catch (error) {
@@ -216,17 +203,13 @@ export async function stkPushQueryWithIntervals(checkoutRequestId: string, maxAt
   return await checkStatus();
 }
 
-/**
- * Process M-PESA callback data
- * This is usually called by the API route that handles the callback from M-PESA
- */
+
 export async function processMpesaCallback(callbackData: MPesaCallbackData) {
   try {
     const { Body } = callbackData;
     const { stkCallback } = Body;
     const { CheckoutRequestID, ResultCode, ResultDesc } = stkCallback;
 
-    // Find the payment with this checkout request ID
     const paymentRecord = await db.query.payments.findFirst({
       where: eq(payments.checkoutRequestId, CheckoutRequestID),
     });
@@ -235,17 +218,12 @@ export async function processMpesaCallback(callbackData: MPesaCallbackData) {
       throw new Error(`Payment record not found for CheckoutRequestID: ${CheckoutRequestID}`);
     }
 
-    // Process callback based on result code
     if (ResultCode === 0) {
-      // Payment successful
       const callbackMetadata = stkCallback.CallbackMetadata?.Item || [];
       const mpesaReceiptNumber = callbackMetadata.find((item: MPesaCallbackItem) => item.Name === 'MpesaReceiptNumber')?.Value;
       const transactionDate = callbackMetadata.find((item: MPesaCallbackItem) => item.Name === 'TransactionDate')?.Value;
       
-      // We don't need the phoneNumber in this implementation, but we'll keep it typed properly
-      // const phoneNumber = callbackMetadata.find((item: MPesaCallbackItem) => item.Name === 'PhoneNumber')?.Value;
-
-      // Update payment record with success status
+     
       await db.update(payments)
         .set({
           status: 'completed',
@@ -258,7 +236,6 @@ export async function processMpesaCallback(callbackData: MPesaCallbackData) {
         })
         .where(eq(payments.id, paymentRecord.id));
 
-      // Update order status and generate ticket QR codes
       await db.update(orders)
         .set({ status: 'completed' })
         .where(eq(orders.id, paymentRecord.orderId));
@@ -281,7 +258,6 @@ export async function processMpesaCallback(callbackData: MPesaCallbackData) {
         })
         .where(eq(payments.id, paymentRecord.id));
 
-      // Update order status
       await db.update(orders)
         .set({ status: 'failed' })
         .where(eq(orders.id, paymentRecord.orderId));
@@ -305,9 +281,7 @@ export async function processMpesaCallback(callbackData: MPesaCallbackData) {
   }
 }
 
-/**
- * Check payment status for an order
- */
+
 export async function checkPaymentStatus(orderId: number) {
   try {
     const session = await auth();
@@ -315,7 +289,6 @@ export async function checkPaymentStatus(orderId: number) {
       throw new Error("Authentication required");
     }
 
-    // Validate the order belongs to the user or user is admin/manager
     const order = await db.query.orders.findFirst({
       where: eq(orders.id, orderId),
     });

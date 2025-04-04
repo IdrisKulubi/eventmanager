@@ -33,7 +33,6 @@ export type Event = {
   updatedAt: Date | string;
 };
 
-// Action cell component to use hooks
 function ActionCell({ event }: { event: Event }) {
   const router = useRouter();
   

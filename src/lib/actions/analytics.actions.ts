@@ -18,7 +18,6 @@ import {
 } from "@/types/analytics";
 import { revalidatePath } from "next/cache";
 
-// Define User type with role property
 interface User {
   id: string;
   name?: string | null;
@@ -27,23 +26,18 @@ interface User {
   role?: 'admin' | 'manager' | 'user' | 'security';
 }
 
-/**
- * Check authorization for analytics access
- */
+
 async function checkAnalyticsPermission() {
   const session = await auth();
   if (!session) {
     return false;
   }
 
-  // Only admin and manager roles can access analytics
   const user = session.user as User;
   return user.role === 'admin' || user.role === 'manager';
 }
 
-/**
- * Get total sales and revenue stats
- */
+
 export async function getSalesSummary(dateRange?: DateRange): Promise<SalesSummary> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -51,7 +45,6 @@ export async function getSalesSummary(dateRange?: DateRange): Promise<SalesSumma
   }
 
   try {
-    // Prepare date condition
     const dateConditions: SQL<unknown>[] = [];
     if (dateRange?.startDate) {
       dateConditions.push(gte(orders.orderDate, dateRange.startDate));
@@ -60,7 +53,6 @@ export async function getSalesSummary(dateRange?: DateRange): Promise<SalesSumma
       dateConditions.push(lte(orders.orderDate, dateRange.endDate));
     }
 
-    // Get total revenue from completed orders
     const revenueQuery = db.select({
       totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric), 0)`.as('total_revenue'),
       orderCount: count(orders.id).as('order_count'),
@@ -71,7 +63,6 @@ export async function getSalesSummary(dateRange?: DateRange): Promise<SalesSumma
       ...dateConditions
     ));
 
-    // Get total tickets sold
     const ticketsDateConditions: SQL<unknown>[] = [];
     if (dateRange?.startDate) {
       ticketsDateConditions.push(gte(tickets.createdAt, dateRange.startDate));
@@ -87,7 +78,6 @@ export async function getSalesSummary(dateRange?: DateRange): Promise<SalesSumma
     .from(tickets)
     .where(ticketsDateConditions.length > 0 ? and(...ticketsDateConditions) : undefined);
 
-    // Run queries in parallel
     const [revenueResult, ticketsResult] = await Promise.all([revenueQuery, ticketsQuery]);
 
     const orderCount = revenueResult[0]?.orderCount || 0;
@@ -112,9 +102,7 @@ export async function getSalesSummary(dateRange?: DateRange): Promise<SalesSumma
   }
 }
 
-/**
- * Get sales data by category with revenue breakdown
- */
+
 export async function getSalesByCategory(dateRange?: DateRange): Promise<SalesByCategory> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -122,7 +110,6 @@ export async function getSalesByCategory(dateRange?: DateRange): Promise<SalesBy
   }
 
   try {
-    // Prepare date condition
     const dateConditions: SQL<unknown>[] = [eq(tickets.status, 'sold')];
     if (dateRange?.startDate) {
       dateConditions.push(gte(tickets.createdAt, dateRange.startDate));
@@ -168,9 +155,7 @@ export async function getSalesByCategory(dateRange?: DateRange): Promise<SalesBy
   }
 }
 
-/**
- * Get attendance data for events
- */
+
 export async function getAttendanceData(eventId?: string): Promise<AttendanceData> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -192,16 +177,14 @@ export async function getAttendanceData(eventId?: string): Promise<AttendanceDat
     .groupBy(events.id, events.title, events.startDate, events.endDate)
     .orderBy(desc(events.startDate));
     
-    // Conditionally apply event filter
     const query = eventId 
       ? baseQuery.where(eq(events.id, Number(eventId))) 
       : baseQuery;
 
     const results = await query;
 
-    // Map the results to the proper type 
     const eventsData = results.map(event => ({
-      eventId: String(event.eventId), // Convert to string to match interface
+      eventId: String(event.eventId),
       eventTitle: event.eventTitle,
       totalTickets: Number(event.totalTickets),
       soldTickets: Number(event.soldTickets),
@@ -211,7 +194,6 @@ export async function getAttendanceData(eventId?: string): Promise<AttendanceDat
         : 0,
     }));
     
-    // Calculate the average attendance rate
     const totalEvents = eventsData.length;
     const sumAttendanceRates = eventsData.reduce(
       (sum, event) => sum + event.attendanceRate, 0
@@ -232,9 +214,7 @@ export async function getAttendanceData(eventId?: string): Promise<AttendanceDat
   }
 }
 
-/**
- * Get revenue analytics with trends over time
- */
+
 export async function getRevenueAnalytics(
   period: TimePeriod = 'monthly', 
   dateRange?: DateRange
@@ -245,7 +225,6 @@ export async function getRevenueAnalytics(
   }
 
   try {
-    // Define time grouping based on period
     let timeGroup;
     if (period === 'daily') {
       timeGroup = sql`DATE(${orders.orderDate})`;
@@ -255,7 +234,6 @@ export async function getRevenueAnalytics(
       timeGroup = sql`DATE_TRUNC('month', ${orders.orderDate})`;
     }
 
-    // Prepare date conditions
     const dateConditions: SQL<unknown>[] = [eq(orders.status, 'completed')];
     if (dateRange?.startDate) {
       dateConditions.push(gte(orders.orderDate, dateRange.startDate));
@@ -276,7 +254,6 @@ export async function getRevenueAnalytics(
 
     const results = await query;
 
-    // Transform results to match the expected type
     const timeSeriesData = results.map(item => ({
       period: item.period instanceof Date 
         ? item.period.toISOString().split('T')[0] 
@@ -292,7 +269,6 @@ export async function getRevenueAnalytics(
       ? totalRevenue / timeSeriesData.length 
       : 0;
     
-    // Calculate growth rate (simple comparison between first and last period)
     let growthRate = 0;
     if (timeSeriesData.length >= 2) {
       const firstRevenue = timeSeriesData[0].revenue;
@@ -315,9 +291,7 @@ export async function getRevenueAnalytics(
   }
 }
 
-/**
- * Get venue capacity utilization data
- */
+
 export async function getCapacityUtilization(eventId?: number): Promise<CapacityUtilization> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -325,7 +299,6 @@ export async function getCapacityUtilization(eventId?: number): Promise<Capacity
   }
 
   try {
-    // Define the query result type
     type VenueQueryResult = {
       eventId: number;
       eventTitle: string;
@@ -337,7 +310,6 @@ export async function getCapacityUtilization(eventId?: number): Promise<Capacity
       soldTickets: number;
     };
 
-    // Prepare base query with proper type annotation
     const baseQuery = db.select({
       eventId: events.id,
       eventTitle: events.title,
@@ -354,14 +326,12 @@ export async function getCapacityUtilization(eventId?: number): Promise<Capacity
     .groupBy(events.id, events.title, events.startDate, venues.id, venues.name, venues.capacity)
     .orderBy(desc(events.startDate));
 
-    // Conditionally apply event filter with proper type annotation
     const query = eventId
       ? baseQuery.where(eq(events.id, eventId))
       : baseQuery;
 
     const results = await query;
 
-    // Define venue data type for the mapped result
     type VenueData = {
       eventId: string;
       eventTitle: string;
@@ -370,14 +340,12 @@ export async function getCapacityUtilization(eventId?: number): Promise<Capacity
       utilizationRate: number;
     };
 
-    // Transform results to match expected type - renamed to venueData to avoid collision
     const venueData: VenueData[] = results.map((event: VenueQueryResult) => {
-      // Use max tickets if available, otherwise use venue capacity
       const venueCapacity = Number(event.maxTickets) || Number(event.capacity) || 0;
       const ticketsSold = Number(event.soldTickets) || 0;
       
       return {
-        eventId: String(event.eventId), // Convert to string to match interface
+        eventId: String(event.eventId),
         eventTitle: event.eventTitle,
         venueCapacity,
         ticketsSold,
@@ -387,7 +355,6 @@ export async function getCapacityUtilization(eventId?: number): Promise<Capacity
       };
     });
     
-    // Calculate average utilization rate
     const totalEvents = venueData.length;
     const sumUtilizationRates = venueData.reduce(
       (sum: number, venue: VenueData) => sum + venue.utilizationRate, 0
@@ -407,9 +374,7 @@ export async function getCapacityUtilization(eventId?: number): Promise<Capacity
   }
 }
 
-/**
- * Get payment method distribution data
- */
+
 export async function getPaymentMethodDistribution(dateRange?: DateRange): Promise<PaymentMethodDistribution> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -417,7 +382,6 @@ export async function getPaymentMethodDistribution(dateRange?: DateRange): Promi
   }
 
   try {
-    // Prepare date conditions
     const dateConditions: SQL<unknown>[] = [eq(payments.status, 'completed')];
     if (dateRange?.startDate) {
       dateConditions.push(gte(payments.createdAt, dateRange.startDate));
@@ -465,9 +429,7 @@ export async function getPaymentMethodDistribution(dateRange?: DateRange): Promi
   }
 }
 
-/**
- * Get monthly sales targets and actuals
- */
+
 export async function getMonthlySalesTargets(year: number = new Date().getFullYear()): Promise<MonthlySalesTargets> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {
@@ -475,10 +437,9 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
   }
 
   try {
-    const startDate = new Date(year, 0, 1); // January 1st of the year
-    const endDate = new Date(year, 11, 31); // December 31st of the year
+    const startDate = new Date(year, 0, 1); 
+    const endDate = new Date(year, 11, 31); 
     
-    // Get actual sales by month
     const actualsQuery = db.select({
       month: sql`DATE_TRUNC('month', ${orders.orderDate})::date`,
       actual: sql<number>`COALESCE(SUM(${orders.total}::int), 0)`,
@@ -494,7 +455,6 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
     .groupBy(sql`DATE_TRUNC('month', ${orders.orderDate})::date`)
     .orderBy(sql`DATE_TRUNC('month', ${orders.orderDate})::date`);
     
-    // Get custom targets from the salesTargets table
     const targetsQuery = db.select({
       month: salesTargets.month,
       target: salesTargets.target,
@@ -503,16 +463,13 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
     .where(eq(salesTargets.year, year))
     .orderBy(asc(salesTargets.month));
     
-    // Execute both queries in parallel
     const [actualsResults, targetsResults] = await Promise.all([actualsQuery, targetsQuery]);
     
-    // Map month number to target amount
     const targetsByMonth = new Map<number, number>();
     targetsResults.forEach(target => {
       targetsByMonth.set(target.month, Number(target.target));
     });
     
-    // Map month to actual sales
     const actualByMonth = new Map<number, number>();
     actualsResults.forEach(item => {
       if (item.month instanceof Date) {
@@ -522,24 +479,21 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
       }
     });
     
-    // Generate monthly data with targets
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     
-    // Default seasonal factors as fallback if no target is set
     const seasonalFactors = [
-      0.7, 0.8, 1.0, 1.1, 1.2, 1.5, // Jan-Jun
-      1.5, 1.4, 1.2, 1.0, 1.3, 1.5  // Jul-Dec
+      0.7, 0.8, 1.0, 1.1, 1.2, 1.5, 
+      1.5, 1.4, 1.2, 1.0, 1.3, 1.5  
     ];
     
-    const baseTarget = 25000; // Base monthly target for fallback
+    const baseTarget = 25000; 
     
     const months = monthNames.map((monthName, index) => {
       const actual = actualByMonth.get(index) || 0;
       
-      // Use custom target if set, otherwise calculate a default
       const target = targetsByMonth.has(index + 1) 
         ? targetsByMonth.get(index + 1) || 0
         : Math.round(baseTarget * seasonalFactors[index]);
@@ -552,7 +506,6 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
       };
     });
     
-    // Calculate year totals
     const yearTotal = {
       target: months.reduce((sum, month) => sum + month.target, 0),
       actual: months.reduce((sum, month) => sum + month.actual, 0),
@@ -573,16 +526,14 @@ export async function getMonthlySalesTargets(year: number = new Date().getFullYe
   }
 }
 
-/**
- * Set a monthly sales target
- */
+
 export async function setMonthlySalesTarget({
   year,
   month,
   target
 }: {
   year: number;
-  month: number; // 1-12 for January-December
+  month: number; 
   target: number;
 }): Promise<{ success: boolean }> {
   const hasPermission = await checkAnalyticsPermission();
@@ -602,7 +553,6 @@ export async function setMonthlySalesTarget({
     const session = await auth();
     const user = session?.user as User;
     
-    // Check if a target for this year/month already exists
     const existingTarget = await db.select()
       .from(salesTargets)
       .where(and(
@@ -612,7 +562,6 @@ export async function setMonthlySalesTarget({
       .limit(1);
     
     if (existingTarget.length > 0) {
-      // Update existing target
       await db.update(salesTargets)
         .set({
           target: target.toString(),
@@ -636,7 +585,6 @@ export async function setMonthlySalesTarget({
         });
     }
     
-    // Revalidate the dashboard page
     revalidatePath('/dashboard/analytics');
     
     return { success: true };
@@ -646,9 +594,7 @@ export async function setMonthlySalesTarget({
   }
 }
 
-/**
- * Get all sales targets for a specific year
- */
+
 export async function getYearlySalesTargets(year: number): Promise<MonthlyTarget[]> {
   const hasPermission = await checkAnalyticsPermission();
   if (!hasPermission) {

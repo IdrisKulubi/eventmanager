@@ -10,16 +10,12 @@ const Hero = () => {
   const ctaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Create a timeline for sequential animations
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-    // Title animation with character splitting
     if (titleRef.current) {
-      // Split text into characters
       const chars = titleRef.current.textContent?.split("") || [];
       titleRef.current.innerHTML = "";
 
-      // Add spans for each character
       chars.forEach((char) => {
         const span = document.createElement("span");
         span.textContent = char;
@@ -29,7 +25,6 @@ const Hero = () => {
         titleRef.current?.appendChild(span);
       });
 
-      // Animate each character
       tl.to(titleRef.current.children, {
         opacity: 1,
         y: 0,
@@ -38,7 +33,6 @@ const Hero = () => {
       });
     }
 
-    // Subtitle fade in
     tl.to(
       subtitleRef.current,
       {
@@ -49,7 +43,6 @@ const Hero = () => {
       "-=0.4"
     );
 
-    // CTA buttons animation
     if (ctaRef.current) {
       const children = Array.from(ctaRef.current.children);
       tl.to(

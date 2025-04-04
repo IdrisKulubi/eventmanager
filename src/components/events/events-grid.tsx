@@ -43,10 +43,8 @@ export function EventsGrid({
   minPrice,
   maxPrice,
 }: EventsGridProps) {
-  // Calculate total pages
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   
-  // Generate pagination URL with all current filters
   const getPaginationUrl = (targetPage: number) => {
     const params = new URLSearchParams();
     
@@ -64,7 +62,6 @@ export function EventsGrid({
     return `/events?${params.toString()}`;
   };
 
-  // Render loading state
   if (isLoading) {
     return (
       <div className="space-y-8">
@@ -86,7 +83,6 @@ export function EventsGrid({
     );
   }
 
-  // Render empty state
   if (events.length === 0) {
     return (
       <div className="text-center py-12 px-4 rounded-xl bg-gradient-to-b from-zinc-900/80 to-purple-950/20 border border-purple-900/20">
@@ -218,7 +214,6 @@ export function EventsGrid({
   );
 }
 
-// Sort button component
 function SortButton({
   currentSort,
   value,
@@ -244,7 +239,6 @@ function SortButton({
   maxPrice?: string;
   page: number;
 }) {
-  // Generate URL with sort parameter
   const getSortUrl = () => {
     const params = new URLSearchParams();
     
@@ -281,7 +275,6 @@ function SortButton({
   );
 }
 
-// Event card component
 function EventCard({ event }: { event: any }) {
   return (
     <Link 
@@ -348,7 +341,6 @@ function EventCard({ event }: { event: any }) {
   );
 }
 
-// Event card skeleton for loading state
 function EventCardSkeleton() {
   return (
     <div className="rounded-xl overflow-hidden bg-gradient-to-br from-zinc-900/90 to-purple-950/30 border border-purple-900/20">

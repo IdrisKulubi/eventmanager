@@ -1,9 +1,6 @@
-// Analytics data types
 
-// Common type for time periods
 export type TimePeriod = 'daily' | 'weekly' | 'monthly';
 
-// Sales Summary
 export interface SalesSummary {
   totalRevenue: number;
   orderCount: number;
@@ -12,7 +9,6 @@ export interface SalesSummary {
   conversionRate: number;
 }
 
-// Sales by Category
 export interface CategorySales {
   categoryName: string;
   ticketsSold: number;
@@ -25,7 +21,6 @@ export interface SalesByCategory {
   totalRevenue: number;
 }
 
-// Attendance Data
 export interface EventAttendance {
   eventId: string;
   eventTitle: string;
@@ -41,7 +36,6 @@ export interface AttendanceData {
   averageAttendanceRate: number;
 }
 
-// Revenue Analytics
 export interface RevenuePoint {
   period: string;
   revenue: number;
@@ -54,7 +48,6 @@ export interface RevenueAnalytics {
   growthRate: number;
 }
 
-// Capacity Utilization
 export interface VenueUtilization {
   eventId: string;
   eventTitle: string;
@@ -68,7 +61,6 @@ export interface CapacityUtilization {
   averageUtilizationRate: number;
 }
 
-// Payment Method Distribution
 export interface PaymentMethodData {
   method: string;
   count: number;
@@ -82,7 +74,6 @@ export interface PaymentMethodDistribution {
   totalAmount: number;
 }
 
-// Monthly Sales Targets
 export interface MonthlySalesTarget {
   month: string;
   target: number;
@@ -99,13 +90,11 @@ export interface MonthlySalesTargets {
   };
 }
 
-// Add the MonthlyTarget interface
 export interface MonthlyTarget {
-  month: number; // 1-12 for January-December
+  month: number; 
   target: number;
 }
 
-// Date range for filtering
 export interface DateRange {
   startDate?: Date;
   endDate?: Date;

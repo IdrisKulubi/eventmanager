@@ -22,11 +22,9 @@ export const signInDefaultValues = {
   ? process.env.USER_ROLES.split(', ')
   : ['admin', 'user','manager']
 
-// Event related constants
 export const EVENT_STATUSES = ['draft', 'published', 'cancelled', 'completed'] as const;
 
 
-// Image upload constants
 export const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 export const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const MAX_IMAGE_DIMENSIONS = {

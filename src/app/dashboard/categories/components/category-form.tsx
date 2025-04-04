@@ -22,7 +22,6 @@ import {  createCategory, updateCategory } from "@/lib/actions/category.actions"
 import { Card, CardContent, CardDescription,  CardHeader, CardTitle } from "@/components/ui/card";
 import { CategoryFormSchema } from "@/lib/validators";
 
-// Define the type based on the schema
 type Category = typeof eventCategories.$inferSelect;
 
 interface CategoryFormProps {
@@ -56,11 +55,9 @@ export function CategoryForm({ initialData }: CategoryFormProps) {
       setIsSubmitting(true);
       
       if (initialData) {
-        // Update existing category
         await updateCategory(initialData.id, data);
         toast.success("Category updated successfully");
       } else {
-        // Create new category
         await createCategory(data);
         toast.success("Category created successfully");
       }

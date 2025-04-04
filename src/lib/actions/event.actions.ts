@@ -10,7 +10,6 @@ import { events, eventToCategory, eventCategories, venues } from '@/db/schema';
 
 type EventFormData = z.infer<typeof EventFormSchema>;
 
-//  User type with role property
 interface User {
   id: string;
   name?: string | null;
@@ -19,14 +18,12 @@ interface User {
   role?: 'admin' | 'manager' | 'user';
 }
 
-// Authorization check for event management
 async function checkEventManagementPermission() {
   const session = await auth();
   if (!session) {
     return false;
   }
 
-  // Only admin and manager roles can manage events
   const user = session.user as User;
   return user.role === 'admin' || user.role === 'manager';
 }
@@ -55,16 +52,13 @@ export async function getEvents({
   sortOrder?: 'asc' | 'desc';
 }) {
   try {
-    // For public listing, no auth check needed
     const offset = (page - 1) * limit;
     
-    // Build conditions array
     const conditions = [];
     
     if (status) {
       conditions.push(eq(events.status, status));
     } else {
-      // Default to published events for public listing
       conditions.push(eq(events.status, 'published'));
     }
     
@@ -72,12 +66,10 @@ export async function getEvents({
       conditions.push(like(events.title, `%${search}%`));
     }
     
-    // Filter by location (venue)
     if (locationId) {
       conditions.push(eq(events.venueId, locationId));
     }
     
-    // Filter by date range
     if (startDate) {
       conditions.push(gte(events.startDate, startDate));
     }
@@ -86,7 +78,6 @@ export async function getEvents({
       conditions.push(gte(events.endDate, endDate));
     }
     
-    // If filtering by category, fetch eligible event IDs
     let eligibleEventIds: number[] | undefined;
     if (categoryId) {
       const eventIdsResult = await db
@@ -103,7 +94,6 @@ export async function getEvents({
         eligibleEventIds = eventIdsResult.map(e => e.eventId);
         conditions.push(inArray(events.id, eligibleEventIds));
       } else {
-        // No events in this category, return empty result early
         return { 
           events: [], 
           pagination: { 
@@ -116,10 +106,8 @@ export async function getEvents({
       }
     }
     
-    // Create the AND condition if we have any conditions
     const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
     
-    // Run count query with timeout handling
     const countPromise = db.select({
       value: count()
     })
@@ -131,7 +119,6 @@ export async function getEvents({
       return [{ value: 0 }];
     });
     
-    // Run main query with timeout handling
     const eventsPromise = db.select()
       .from(events)
       .where(whereCondition)
@@ -148,16 +135,12 @@ export async function getEvents({
         return [];
       });
     
-    // Execute both queries in parallel
     const [totalEventsResult, eventsList] = await Promise.all([countPromise, eventsPromise]);
     
-    // Get total count for pagination
     const total = totalEventsResult[0]?.value || 0;
     
-    // Calculate total pages
     const totalPages = Math.ceil(total / limit);
     
-    // If no events found, return early
     if (eventsList.length === 0) {
       return { 
         events: [], 
@@ -170,12 +153,9 @@ export async function getEvents({
       };
     }
     
-    // Get event IDs for related data queries
     const eventIds = eventsList.map(event => event.id);
     
-    // Execute all related data queries in parallel to improve performance
     const [categoryRelations, venueList] = await Promise.all([
-      // Get category relations
       db.select({
         eventId: eventToCategory.eventId,
         categoryId: eventToCategory.categoryId,
@@ -188,7 +168,6 @@ export async function getEvents({
         return [];
       }),
       
-      // Get venues data
       db.select()
         .from(venues)
         .where(inArray(venues.id, eventsList.map(e => e.venueId).filter(Boolean) as number[]))
@@ -199,7 +178,6 @@ export async function getEvents({
         })
     ]);
     
-    // Group category IDs by event ID for faster lookups
     const categoryIdsByEvent = categoryRelations.reduce((acc, rel) => {
       if (!acc[rel.eventId]) {
         acc[rel.eventId] = [];
@@ -208,13 +186,11 @@ export async function getEvents({
       return acc;
     }, {} as Record<number, number[]>);
     
-    // Create venue lookup map for faster access
     const venueMap = venueList.reduce((acc, venue) => {
       acc[venue.id] = venue;
       return acc;
     }, {} as Record<number, typeof venueList[number]>);
     
-    // Fetch all needed categories in a single query
     const uniqueCategoryIds = [...new Set(categoryRelations.map(rel => rel.categoryId))];
     const categoriesData = uniqueCategoryIds.length > 0
       ? await db
@@ -228,21 +204,16 @@ export async function getEvents({
           })
       : [];
     
-    // Create category lookup map for faster access
     const categoryMap = categoriesData.reduce((acc, category) => {
       acc[category.id] = category;
       return acc;
     }, {} as Record<number, typeof categoriesData[number]>);
     
-    // Map events with their related data
     const eventsWithDetails = eventsList.map(event => {
-      // Get venue from map
       const venue = event.venueId ? venueMap[event.venueId] : null;
       
-      // Get category IDs for this event
       const eventCategoryIds = categoryIdsByEvent[event.id] || [];
       
-      // Map category IDs to full category objects
       const eventCategories = eventCategoryIds
         .map(id => categoryMap[id])
         .filter(Boolean);
@@ -266,7 +237,6 @@ export async function getEvents({
     };
   } catch (error) {
     console.error('Error fetching events:', error);
-    // Return empty result with error flag instead of throwing
     return { 
       events: [], 
       pagination: { 
@@ -282,7 +252,6 @@ export async function getEvents({
 
 export async function getEventById(id: number) {
   try {
-    // Get the event with all its details
     const event = await db.select({
       id: events.id,
       title: events.title,
@@ -307,7 +276,6 @@ export async function getEventById(id: number) {
       return null;
     }
     
-    // Get event categories with their names
     const categoryData = await db
       .select({
         categoryId: eventToCategory.categoryId,
@@ -315,7 +283,6 @@ export async function getEventById(id: number) {
       .from(eventToCategory)
       .where(eq(eventToCategory.eventId, id));
     
-    // Get venue from database instead of constants
     const venueData = event[0].venueId ? await db
       .select()
       .from(venues)
@@ -324,7 +291,6 @@ export async function getEventById(id: number) {
     
     const venueName = venueData.length > 0 ? venueData[0].name : 'Unknown venue';
     
-    // Get categories from database 
     const categoryIds = categoryData.map(item => item.categoryId);
     const categories = categoryIds.length > 0
       ? await db
@@ -360,7 +326,6 @@ export async function createEvent(formData: EventFormData) {
     const { categoryIds, ...eventData } = formData;
     const user = session?.user;
 
-    // Validate essential data
     if (!eventData.title || !eventData.startDate || !eventData.endDate || !eventData.venueId) {
       return { 
         success: false, 
@@ -368,13 +333,10 @@ export async function createEvent(formData: EventFormData) {
       };
     }
     
-    // Ensure the banner image is properly handled
     console.log("Banner image URL before saving:", eventData.bannerImage);
     
-    // Start a transaction to ensure all operations succeed or fail together
     return await db.transaction(async (tx) => {
       try {
-        // Explicitly create an object with all fields including bannerImage
         const eventToInsert = {
           title: eventData.title,
           description: eventData.description,
@@ -392,25 +354,20 @@ export async function createEvent(formData: EventFormData) {
         
         console.log("Inserting event with data:", JSON.stringify(eventToInsert, null, 2));
         
-        // 1. First create the event without categories
         const [newEvent] = await tx.insert(events)
           .values(eventToInsert)
           .returning();
         
         console.log("Created event with data:", newEvent);
         
-        // 2. If categories are provided, validate and insert them
         if (categoryIds && categoryIds.length > 0) {
-          // Validate that all category IDs exist before creating relationships
           const existingCategories = await tx
             .select({ id: eventCategories.id })
             .from(eventCategories)
             .where(inArray(eventCategories.id, categoryIds));
           
-          // Get list of valid category IDs that actually exist
           const validCategoryIds = existingCategories.map(cat => cat.id);
           
-          // Only create relationships for valid categories
           if (validCategoryIds.length > 0) {
             const categoryRelations = validCategoryIds.map(categoryId => ({
               eventId: newEvent.id,
@@ -421,7 +378,6 @@ export async function createEvent(formData: EventFormData) {
             console.log("Created category relationships:", categoryRelations);
           }
           
-          // Log warning if some categories were invalid
           if (validCategoryIds.length !== categoryIds.length) {
             console.warn(`Some category IDs were invalid and skipped: ${categoryIds.filter(id => !validCategoryIds.includes(id))}`);
           }
@@ -434,14 +390,12 @@ export async function createEvent(formData: EventFormData) {
           message: 'Event created successfully' 
         };
       } catch (txError) {
-        // Transaction will automatically roll back on error
         console.error('Transaction error:', txError);
         throw txError;
       }
     });
   } catch (error) {
     console.error('Error creating event:', error);
-    // Provide more specific error message based on the error type
     if (error instanceof Error) {
       return { 
         success: false, 
@@ -469,7 +423,6 @@ export async function updateEvent(id: number, formData: EventFormData) {
   try {
     const { categoryIds, ...eventData } = formData;
     
-    // Validate essential data
     if (!eventData.title || !eventData.startDate || !eventData.endDate || !eventData.venueId) {
       return { 
         success: false, 
@@ -477,13 +430,10 @@ export async function updateEvent(id: number, formData: EventFormData) {
       };
     }
     
-    // Ensure the banner image is properly handled
     console.log("Banner image URL before updating:", eventData.bannerImage);
     
-    // Use a transaction for atomic updates
     return await db.transaction(async (tx) => {
       try {
-        // Explicitly create an object with all fields including bannerImage
         const eventToUpdate = {
           title: eventData.title,
           description: eventData.description,
@@ -500,7 +450,6 @@ export async function updateEvent(id: number, formData: EventFormData) {
         
         console.log("Updating event with data:", JSON.stringify(eventToUpdate, null, 2));
         
-        // 1. Update the event data
         const updatedEvent = await tx.update(events)
           .set(eventToUpdate)
           .where(eq(events.id, id))
@@ -508,24 +457,18 @@ export async function updateEvent(id: number, formData: EventFormData) {
         
         console.log("Updated event with data:", updatedEvent);
         
-        // 2. Handle category relationships if provided
         if (categoryIds !== undefined) {
-          // Remove existing relationships
           await tx.delete(eventToCategory)
             .where(eq(eventToCategory.eventId, id));
           
-          // If new categories are provided, validate and insert them
           if (categoryIds && categoryIds.length > 0) {
-            // Validate that all category IDs exist
             const existingCategories = await tx
               .select({ id: eventCategories.id })
               .from(eventCategories)
               .where(inArray(eventCategories.id, categoryIds));
             
-            // Get list of valid category IDs that actually exist
             const validCategoryIds = existingCategories.map(cat => cat.id);
             
-            // Only create relationships for valid categories
             if (validCategoryIds.length > 0) {
               const categoryRelations = validCategoryIds.map(categoryId => ({
                 eventId: id,
@@ -536,14 +479,12 @@ export async function updateEvent(id: number, formData: EventFormData) {
               console.log("Updated category relationships:", categoryRelations);
             }
             
-            // Log warning if some categories were invalid
             if (validCategoryIds.length !== categoryIds.length) {
               console.warn(`Some category IDs were invalid and skipped: ${categoryIds.filter(id => !validCategoryIds.includes(id))}`);
             }
           }
         }
         
-        // Revalidate paths to update UI
         revalidatePath('/dashboard/events');
         revalidatePath(`/dashboard/events/${id}`);
         revalidatePath(`/events/${id}`);
@@ -553,14 +494,12 @@ export async function updateEvent(id: number, formData: EventFormData) {
           message: 'Event updated successfully'
         };
       } catch (txError) {
-        // Transaction will automatically roll back on error
         console.error('Transaction error:', txError);
         throw txError;
       }
     });
   } catch (error) {
     console.error('Error updating event:', error);
-    // Provide more specific error message based on the error type
     if (error instanceof Error) {
       return { 
         success: false, 
@@ -586,7 +525,6 @@ export async function deleteEvent(id: number) {
   }
   
   try {
-    // First check if the event exists
     const existingEvent = await db
       .select({ id: events.id })
       .from(events)
@@ -600,18 +538,14 @@ export async function deleteEvent(id: number) {
       };
     }
     
-    // Use a transaction to ensure all related data is deleted properly
     return await db.transaction(async (tx) => {
       try {
-        // 1. Delete event-to-category relationships
         await tx.delete(eventToCategory)
           .where(eq(eventToCategory.eventId, id));
           
-        // 2. Delete the event itself
         await tx.delete(events)
           .where(eq(events.id, id));
         
-        // Revalidate relevant paths
         revalidatePath('/dashboard/events');
         revalidatePath('/events');
         
@@ -675,7 +609,6 @@ export async function getUpcomingEvents(limit = 6) {
       .orderBy(asc(events.startDate))
       .limit(limit);
     
-    // Get category data for all events
     const eventIds = upcomingEvents.map(event => event.id);
     const categoryRelations = eventIds.length > 0 
       ? await db
@@ -687,7 +620,6 @@ export async function getUpcomingEvents(limit = 6) {
           .where(inArray(eventToCategory.eventId, eventIds))
       : [];
     
-    // Get all venue IDs to fetch in a single query
     const venueIds = upcomingEvents.map(event => event.venueId).filter(Boolean);
     const venueList = venueIds.length > 0 
       ? await db
@@ -696,17 +628,13 @@ export async function getUpcomingEvents(limit = 6) {
           .where(inArray(venues.id, venueIds as number[]))
       : [];
     
-    // Map venue names from database and add categories to events
     const eventsWithDetails = await Promise.all(upcomingEvents.map(async (event) => {
-      // Find venue from database
       const venue = venueList.find(v => v.id === event.venueId);
       
-      // Get category IDs for this event
       const eventCategoryIds = categoryRelations
         .filter(rel => rel.eventId === event.id)
         .map(rel => rel.categoryId);
       
-      // Get categories from database
       const eventCats = await db
         .select()
         .from(eventCategories)
@@ -751,7 +679,6 @@ export async function getFeaturedEvents() {
 
 export async function getEventCategories() {
   try {
-    // Fetch categories from the database instead of using constants
     const categories = await db.select().from(eventCategories).orderBy(asc(eventCategories.name));
     return categories;
   } catch (error) {
@@ -762,7 +689,6 @@ export async function getEventCategories() {
 
 export async function getEventLocations() {
   try {
-    // Fetch venues from the database instead of using constants
     const locations = await db.select({
       id: venues.id,
       name: venues.name,
@@ -784,7 +710,6 @@ export async function getEventLocations() {
 
 export async function getFeaturedEvent() {
   try {
-    // Get a single featured event
     const featuredEvents = await db
       .select()
       .from(events)
@@ -803,7 +728,6 @@ export async function getFeaturedEvent() {
     
     const event = featuredEvents[0];
     
-    // Get event categories
     const categoryData = await db
       .select({
         categoryId: eventToCategory.categoryId,
@@ -811,7 +735,6 @@ export async function getFeaturedEvent() {
       .from(eventToCategory)
       .where(eq(eventToCategory.eventId, event.id));
     
-    // Get venue from database instead of constants
     const venueData = event.venueId ? await db
       .select()
       .from(venues)
@@ -820,7 +743,6 @@ export async function getFeaturedEvent() {
     
     const venueName = venueData.length > 0 ? venueData[0].name : 'Unknown venue';
     
-    // Get categories from database instead of constants
     const categoryIds = categoryData.map(item => item.categoryId);
     
     const categories = categoryIds.length > 0

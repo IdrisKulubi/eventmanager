@@ -21,7 +21,6 @@ import { createVenue, updateVenue } from '@/lib/actions/venue.actions';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-// Define a complete schema that matches the database requirements
 const formSchema = z.object({
   name: z.string().min(2, {
     message: 'Name must be at least 2 characters.',
@@ -55,7 +54,6 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formKey, setFormKey] = useState(`venue-${initialData?.id || 'new'}-${Date.now()}`);
 
-  // Create the form
   const form = useForm<VenueFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -67,7 +65,6 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
     },
   });
 
-  // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -81,7 +78,6 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
     }
   }, [form, initialData]);
 
-  // Check if any field has been modified
   const isDirty = form.formState.isDirty;
 
   async function onSubmit(data: VenueFormValues) {
@@ -91,7 +87,6 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
       if (initialData) {
         await updateVenue(initialData.id, {
           ...data,
-          // Include any fields required by VenueFormData but not in our form
           coordinates: undefined,
           imageUrl: undefined,
           contactInfo: undefined,
@@ -100,7 +95,6 @@ export function VenueForm({ initialData, onSuccess }: VenueFormProps) {
       } else {
         await createVenue({
           ...data,
-          // Include any fields required by VenueFormData but not in our form
           coordinates: undefined,
           imageUrl: undefined,
           contactInfo: undefined,

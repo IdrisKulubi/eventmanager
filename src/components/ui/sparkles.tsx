@@ -24,10 +24,8 @@ interface SparklesCoreProps {
   className?: string;
 }
 
-// Random number generator within a range
 const random = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1) + min);
 
-// Use preferred reduced motion setting
 const useRandomInterval = (
   callback: () => void,
   minDelay: number | null,
@@ -78,7 +76,6 @@ const range = (start: number, end: number, step = 1) => {
 
 const PARTICLE_LIFETIME = 1500; // ms
 
-// Individual sparkle component
 const Sparkle = ({ id, createdAt, color, size, style }: SparkleProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const timeSinceCreation = Date.now() - createdAt;
@@ -125,7 +122,6 @@ const Sparkle = ({ id, createdAt, color, size, style }: SparkleProps) => {
   ) : null;
 };
 
-// Main SparklesCore component that generates and manages sparkles
 export const SparklesCore = ({
   id,
   background = "transparent",
@@ -145,7 +141,6 @@ export const SparklesCore = ({
       : false;
 
   useEffect(() => {
-    // Initialize some sparkles on component mount
     if (!prefersReducedMotion && containerRef.current) {
       const initialSparkles = range(0, particleCount).map(() => generateSparkle(containerRef.current));
       setSparkles(initialSparkles);
@@ -157,17 +152,14 @@ export const SparklesCore = ({
     const createdAt = Date.now();
     const id = String(createdAt);
     
-    // Random size based on min/max settings
     const size = random(minSize * 10, maxSize * 15);
     
     const containerWidth = container?.clientWidth || 400;
     const containerHeight = container?.clientHeight || 300;
     
-    // Random position within the container
     const left = random(0, containerWidth);
     const top = random(0, containerHeight);
     
-    // Use particle color or default based on theme
     const color = particleColor || (theme === "dark" ? "#fff" : "#000");
     
     return {
@@ -182,15 +174,12 @@ export const SparklesCore = ({
     };
   };
 
-  // Add new sparkles over time
   useRandomInterval(
     () => {
       if (prefersReducedMotion || !containerRef.current) return;
       
-      // Add new sparkle
       const newSparkle = generateSparkle(containerRef.current);
       
-      // Remove sparkles older than lifetime and add the new one
       const now = Date.now();
       const nextSparkles = sparkles.filter(sparkle => {
         return now - sparkle.createdAt < PARTICLE_LIFETIME;

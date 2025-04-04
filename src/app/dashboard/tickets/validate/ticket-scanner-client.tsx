@@ -29,7 +29,6 @@ export default function TicketScannerClient() {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerDivRef = useRef<HTMLDivElement>(null);
 
-  // Clean up scanner on unmount
   useEffect(() => {
     return () => {
       if (scannerRef.current) {
@@ -58,7 +57,6 @@ export default function TicketScannerClient() {
           aspectRatio: 1,
         },
         async (decodedText: string) => {
-          // Handle successful scan
           await handleQrCodeScan(decodedText);
         },
         (errorMessage: string) => {

@@ -11,8 +11,7 @@ export default async function CreateTicketCategoryPage({
   params: Promise<{ id: string }>
 }) {
   const resolvedParams = await params;
-  
-  // Check authorization
+
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
@@ -21,7 +20,6 @@ export default async function CreateTicketCategoryPage({
   
   const eventId = parseInt(resolvedParams.id);
   
-  // Get event details
   const event = await getEventById(eventId);
   
   if (!event) {

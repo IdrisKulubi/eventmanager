@@ -7,7 +7,6 @@ import { Card, CardContent,  CardHeader, CardTitle } from "@/components/ui/card"
 import db from "@/db/drizzle";
 
 export default async function EventsStatCards() {
-  // Get counts for different event statuses
   const publishedCount = await db
     .select({ count: count() })
     .from(events)
@@ -27,7 +26,6 @@ export default async function EventsStatCards() {
     .select({ count: count() })
     .from(events);
     
-  // Now get counts for upcoming events (future start date)
   const now = new Date();
   const upcomingCount = await db
     .select({ count: count() })

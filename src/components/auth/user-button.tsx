@@ -30,7 +30,6 @@ export function UserButton({ session, className = '' }: UserButtonProps) {
   const isAdmin = user?.role === 'ADMIN';
   const isManager = user?.role === 'MANAGER';
   
-  // If no user, render sign in buttons
   if (!user) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>

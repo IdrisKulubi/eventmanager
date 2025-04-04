@@ -20,14 +20,12 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminPage() {
-  // Check authorization
   const session = await auth();
   
   if (!session) {
     redirect('/sign-in');
   }
 
-  // Verify admin role
   const user = session.user as User;
   if (user.role !== 'admin') {
     return (

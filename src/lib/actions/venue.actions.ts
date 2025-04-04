@@ -7,7 +7,6 @@ import { venues, events } from '@/db/schema';
 import db from '@/db/drizzle';
 import { VenueFormData } from '../validators';
 
-// Define User type with role property
 interface User {
   id: string;
   name?: string | null;
@@ -17,14 +16,12 @@ interface User {
 }
 
 
-// Authorization check for venue management
 async function checkVenueManagementPermission() {
   const session = await auth();
   if (!session) {
     return false;
   }
 
-  // Only admin and manager roles can manage venues
   const user = session.user as User;
   return user.role === 'admin' || user.role === 'manager';
 }
@@ -45,13 +42,11 @@ export async function getVenues({
   try {
     const offset = (page - 1) * limit;
     
-    // Get total count for pagination
     const totalVenues = await db.select({
       value: count()
     }).from(venues);
     const total = totalVenues[0]?.value || 0;
     
-    // Apply pagination and sorting in the final query
     const paginatedQuery = db.select().from(venues)
       .where(search ? like(venues.name, `%${search}%`) : undefined)
       .orderBy(
@@ -66,10 +61,8 @@ export async function getVenues({
       .limit(limit)
       .offset(offset);
     
-    // Execute query to get venues
     const venuesList = await paginatedQuery;
     
-    // Get event counts for each venue
     const venueIds = venuesList.map(venue => venue.id);
     const eventCounts = venueIds.length > 0
       ? await db.select({
@@ -84,10 +77,8 @@ export async function getVenues({
         .groupBy(events.venueId)
       : [];
     
-    // Create a map of venue IDs to counts
     const countMap = new Map(eventCounts.map(ec => [ec.venueId, ec.count]));
     
-    // Add event count to each venue
     const venuesWithCounts = venuesList.map(venue => ({
       ...venue,
       eventCount: countMap.get(venue.id) || 0
@@ -132,7 +123,6 @@ export async function createVenue(formData: VenueFormData) {
   }
   
   try {
-    // Transform the data to match the database schema
     const dataToInsert = { 
       name: formData.name,
       address: formData.address || '',
@@ -168,7 +158,6 @@ export async function updateVenue(id: number, formData: VenueFormData) {
   }
   
   try {
-    // Transform the data to match the database schema
     const dataToUpdate = { 
       name: formData.name,
       address: formData.address || '',
@@ -205,7 +194,6 @@ export async function deleteVenue(id: number) {
   }
   
   try {
-    // Check if the venue has any associated events
     const venueEvents = await db.select({ id: events.id })
       .from(events)
       .where(eq(events.venueId, id))
@@ -215,7 +203,6 @@ export async function deleteVenue(id: number) {
       throw new Error('Cannot delete venue with associated events');
     }
     
-    // Delete the venue
     await db.delete(venues).where(eq(venues.id, id));
     
     revalidatePath('/dashboard/venues');

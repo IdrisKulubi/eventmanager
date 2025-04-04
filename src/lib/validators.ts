@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-// User schemas
 export const LoginFormSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -18,7 +17,6 @@ export const SignUpFormSchema = z
     path: ["confirmPassword"],
   });
 
-// Venue schemas
 export const VenueFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   address: z.string().optional(),
@@ -47,7 +45,6 @@ export const formSchema = z.object({
   description: z.string().optional(),
 });
 
-// Event schemas
 export const EventFormSchema = z.object({
   title: z.string().min(2, "Title must be at least 2 characters"),
   description: z.string().optional(),
@@ -79,10 +76,8 @@ export const EventFormSchema = z.object({
 
 export type EventFormData = z.infer<typeof EventFormSchema>;
 
-// Venue form schema
 export type VenueFormData = z.infer<typeof VenueFormSchema>;
 
-// Category form schema
 export const CategoryFormSchema = z.object({
   name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
   description: z.string().optional(),
