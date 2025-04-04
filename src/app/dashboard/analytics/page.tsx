@@ -99,7 +99,6 @@ async function AnalyticsContent() {
   const paymentMethods = await getPaymentMethodDistribution();
   const monthlySalesTargets = await getMonthlySalesTargets();
   
-  // Format data for charts
   const categoryChartData = salesByCategory.categories.map(category => ({
     name: category.categoryName,
     value: category.revenue

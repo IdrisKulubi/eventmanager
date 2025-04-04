@@ -26,7 +26,6 @@ import { format } from 'date-fns';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { cn } from '@/lib/utils';
 
-// Form validation schema
 const formSchema = z.object({
   name: z.string().min(2, {
     message: 'Name must be at least 2 characters.',
@@ -65,7 +64,6 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Initialize the form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,7 +79,6 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
     },
   });
 
-  // Fetch ticket category if in edit mode
   useEffect(() => {
     const fetchCategory = async () => {
       if (!editCategoryId) return;
@@ -90,7 +87,6 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
       setIsEditing(true);
       
       try {
-        // Parse the edit id to a number
         const categoryId = parseInt(editCategoryId, 10);
         if (isNaN(categoryId)) return;
         
@@ -120,7 +116,6 @@ export default function TicketCategoryForm({ eventId }: TicketCategoryFormProps)
     fetchCategory();
   }, [editCategoryId, form]);
 
-  // Form submission
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     

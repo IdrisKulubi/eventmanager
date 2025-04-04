@@ -42,7 +42,6 @@ interface MonthlyTargetsCardProps {
   selectedYear?: number;
 }
 
-// Map month name to JavaScript month index (0-11)
 const monthNameToIndex: Record<string, number> = {
   'January': 0,
   'February': 1,
@@ -71,13 +70,11 @@ export function MonthlyTargetsCard({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Check if there's any meaningful data
   const hasData = months.some(month => month.target > 0 || month.actual > 0);
 
-  // Fetch data when year changes
   useEffect(() => {
     const fetchData = async () => {
-      if (year === selectedYear) return; // Skip initial render with default data
+      if (year === selectedYear) return;
       
       try {
         setIsLoading(true);
@@ -100,10 +97,8 @@ export function MonthlyTargetsCard({
   const handleRefresh = () => {
     setIsLoading(true);
     setError(null);
-    // This will refresh the page and refetch all server components
     router.refresh();
     
-    // Also refetch our client component data
     getMonthlySalesTargets(year)
       .then((result) => {
         setMonths(result.months);
@@ -131,7 +126,6 @@ export function MonthlyTargetsCard({
     return 'destructive';
   };
 
-  // Render the empty state when there's no data
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center py-10 text-center px-4 border rounded-md bg-muted/20">
       <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
@@ -273,11 +267,9 @@ export function MonthlyTargetsCard({
   );
 }
 
-// Skeleton loader component for when data is being fetched
 function TargetsCardSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
-      {/* Summary cards skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="rounded-lg border bg-card p-3">
@@ -287,7 +279,6 @@ function TargetsCardSkeleton() {
         ))}
       </div>
 
-      {/* Table header skeleton */}
       <div className="rounded-md border overflow-auto">
         <div className="min-w-[600px]">
           <div className="grid grid-cols-5 p-4 text-xs font-medium sticky top-0 bg-card border-b">
@@ -298,7 +289,6 @@ function TargetsCardSkeleton() {
             <div className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></div>
           </div>
           <div className="divide-y">
-            {/* Generate 6 row skeletons instead of 12 for faster display */}
             {[...Array(6)].map((_, i) => (
               <div key={i} className="grid grid-cols-5 p-4 text-sm items-center">
                 <Skeleton className="h-5 w-20" />

@@ -10,7 +10,6 @@ export const stkPushQuery = async (reqId: string) => {
       : "https://sandbox.safaricom.co.ke";
 
   try {
-    // Generate token
     const auth: string = Buffer.from(
       `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
     ).toString("base64");
@@ -26,7 +25,6 @@ export const stkPushQuery = async (reqId: string) => {
 
     const token = resp.data.access_token;
 
-    // Generate timestamp and password
     const date = new Date();
     const timestamp =
       date.getFullYear() +
@@ -40,7 +38,6 @@ export const stkPushQuery = async (reqId: string) => {
       process.env.MPESA_SHORTCODE! + process.env.MPESA_PASSKEY + timestamp
     ).toString("base64");
 
-    // Query the status of the stk push
     const response = await axios.post(
       `${MPESA_BASE_URL}/mpesa/stkpushquery/v1/query`,
       {

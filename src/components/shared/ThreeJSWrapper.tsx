@@ -10,7 +10,6 @@ const ThreeJSWrapper = ({ children }: ThreeJSWrapperProps) => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    // Ensure this component only renders on the client to prevent hydration issues
     setIsMounted(true);
   }, []);
 

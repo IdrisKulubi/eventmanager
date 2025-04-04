@@ -30,7 +30,6 @@ import { format } from "date-fns";
 import { z } from "zod";
 import { createTicketCategory, updateTicketCategory } from "@/lib/actions/ticket.actions";
 
-// Define the form schema
 const TicketCategorySchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
@@ -99,7 +98,6 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
     defaultValues,
   });
 
-  // Track if the form has been modified
   const isDirty = form.formState.isDirty;
 
   async function onSubmit(data: TicketCategoryFormData) {
@@ -108,7 +106,6 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
       setIsSubmitting(true);
 
       if (initialData) {
-        // Update existing ticket category
         const result = await updateTicketCategory({
           id: initialData.id,
           ...data,
@@ -124,7 +121,6 @@ export function TicketCategoryForm({ eventId, initialData }: TicketCategoryFormP
           throw new Error("Failed to update ticket category");
         }
       } else {
-        // Create new ticket category
         const result = await createTicketCategory({
           ...data,
           eventId,

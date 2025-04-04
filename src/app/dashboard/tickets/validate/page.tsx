@@ -8,10 +8,8 @@ export const metadata = {
 };
 
 export default async function ValidateTicketsPage() {
-  // Check authorization
   const session = await auth();
 
-  // Only allow admin, manager, or security role
   if (
     !session ||
     !(

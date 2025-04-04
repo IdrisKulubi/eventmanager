@@ -13,7 +13,6 @@ export default async function EditTicketCategoryPage({
 }) {
   const resolvedParams = await params;
   
-  // Check authorization
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
@@ -23,21 +22,18 @@ export default async function EditTicketCategoryPage({
   const eventId = parseInt(resolvedParams.id);
   const ticketId = parseInt(resolvedParams.ticketId);
   
-  // Get event details
   const event = await getEventById(eventId);
   
   if (!event) {
     redirect('/dashboard/events');
   }
   
-  // Get ticket category details
   const ticketCategory = await getTicketCategoryById(ticketId);
   
   if (!ticketCategory || ticketCategory.eventId !== eventId) {
     redirect(`/dashboard/events/${eventId}/tickets`);
   }
   
-  // Transform the data to match the form's expected types
   const transformedData = {
     ...ticketCategory,
     price: parseFloat(ticketCategory.price),

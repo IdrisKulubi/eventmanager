@@ -19,7 +19,6 @@ import EventFilters from './components/event-filters';
 import EventsStatCards from './components/events-stat-cards';
 import { ColumnDef } from '@tanstack/react-table';
 
-// Define the Event type based on what's returned from the getEvents function
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -39,7 +38,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const session = await auth();
   const params = await searchParams;
   
-  // Debug logs for session
   console.log("Session:", JSON.stringify({
     isAuthenticated: !!session,
     user: session?.user ? {
@@ -50,8 +48,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     } : null
   }, null, 2));
   
-  // Check if user is authenticated and has required role
-  // More detailed log about authorization check
+  
   const user = session?.user;
   console.log("Authorization check:", {
     hasSession: !!session,

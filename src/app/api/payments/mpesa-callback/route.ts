@@ -1,9 +1,8 @@
 import { processMpesaCallback } from "@/lib/actions/payment.actions";
 import { NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 60; // Set maximum duration for this route to 60 seconds
+export const maxDuration = 60; //  maximum duration for this route to 60 seconds
 
-// List of Safaricom IP addresses for whitelisting
 const MPESA_WHITELIST_IPS = [
   '196.201.214.200',
   '196.201.214.206',
@@ -17,7 +16,6 @@ const MPESA_WHITELIST_IPS = [
   '196.201.212.136',
   '196.201.212.74',
   '196.201.212.69',
-  // Include localhost/testing IPs if needed
   '127.0.0.1',
   '::1',
 ];
@@ -25,16 +23,12 @@ const MPESA_WHITELIST_IPS = [
 // Secret key from .env to verify callback requests
 const CALLBACK_SECRET_KEY = process.env.MPESA_CALLBACK_SECRET_KEY;
 
-/**
- * Handle M-PESA STK Push callbacks
- */
+
 export async function POST(request: NextRequest) {
   try {
-    // Extract and check client IP for whitelisting
     const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip');
     const ipToCheck = clientIp?.split(',')[0].trim();
     
-    // Skip IP validation in development environment
     if (process.env.NODE_ENV === 'production') {
       if (!ipToCheck || !MPESA_WHITELIST_IPS.includes(ipToCheck)) {
         console.error(`Blocked callback from non-whitelisted IP: ${ipToCheck}`);
@@ -45,7 +39,6 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Validate the URL path secret key if configured
     const { pathname } = new URL(request.url);
     const pathParts = pathname.split('/');
     const securityKey = pathParts[pathParts.length - 1];
@@ -58,11 +51,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Parse the callback data
     const callbackData = await request.json();
     console.log("Received M-PESA callback:", JSON.stringify(callbackData, null, 2));
 
-    // Validate callback data structure
     if (!callbackData?.Body?.stkCallback) {
       console.error("Invalid callback data structure");
       return NextResponse.json(
@@ -71,10 +62,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process the callback
     const result = await processMpesaCallback(callbackData);
 
-    // M-PESA expects a specific response format
     if (result.success) {
       return NextResponse.json(
         {
@@ -90,13 +79,12 @@ export async function POST(request: NextRequest) {
           ResultCode: 1,
           ResultDesc: result.error || "Failed to process callback",
         },
-        { status: 200 } // Still return 200 to acknowledge receipt
+        { status: 200 }
       );
     }
   } catch (error) {
     console.error("Error handling M-PESA callback:", error);
     
-    // Always return 200 to M-PESA even if there's an error, to acknowledge receipt
     return NextResponse.json(
       {
         ResultCode: 1,
@@ -107,9 +95,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Handle GET requests (for testing the endpoint is active)
- */
+
 export async function GET() {
   return NextResponse.json(
     {

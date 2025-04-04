@@ -53,7 +53,6 @@ export default function PaymentForm({
   const [success, setSuccess] = useState<boolean>(false);
   const [stkQueryLoading, setStkQueryLoading] = useState<boolean>(false);
 
-  // Create form with default values
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
@@ -76,7 +75,6 @@ export default function PaymentForm({
       orderNumber: orderNumber,
     };
 
-    // Validate phone number using Kenyan phone number pattern
     const kenyanPhoneNumberRegex =
       /^(07\d{8}|01\d{8}|2547\d{8}|2541\d{8}|\+2547\d{8}|\+2541\d{8})$/;
 
@@ -98,12 +96,10 @@ export default function PaymentForm({
 
       const checkoutRequestId = stkData.CheckoutRequestID;
       
-      // Start polling for payment status
       setStkQueryLoading(true);
       await stkPushQueryWithIntervals(checkoutRequestId);
 
-      // Note: The payment status will be checked by the callback
-      // For this UI, we'll just show the loading state
+     
     } catch (error) {
       console.error("Error sending STK push:", error);
       setLoading(false);
@@ -112,7 +108,6 @@ export default function PaymentForm({
   };
 
   const onFormSubmit = (data: PaymentFormValues) => {
-    // Form is valid, proceed with payment
     handleSubmit();
   };
 

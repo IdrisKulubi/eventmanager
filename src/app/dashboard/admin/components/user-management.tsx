@@ -86,7 +86,6 @@ export function UserManagement() {
   }, []);
 
   useEffect(() => {
-    // Filter users based on search query
     const filtered = users.filter(user => 
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
       user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -95,7 +94,7 @@ export function UserManagement() {
     
     setFilteredUsers(filtered);
     setTotalPages(Math.ceil(filtered.length / PAGE_SIZE));
-    setPage(1); // Reset to first page when search changes
+    setPage(1); 
   }, [searchQuery, users]);
 
   const fetchUsers = async () => {
@@ -129,7 +128,6 @@ export function UserManagement() {
         toast.error(result.error);
       } else {
         toast.success(`User role updated to ${selectedRole}`);
-        // Update local state
         setUsers(users.map(user => 
           user.id === userToEdit.id ? { ...user, role: selectedRole } : user
         ));
@@ -153,7 +151,6 @@ export function UserManagement() {
         toast.error(result.error);
       } else {
         toast.success('User deleted successfully');
-        // Update local state
         setUsers(users.filter(user => user.id !== userToDelete.id));
         setDeleteDialogOpen(false);
       }
@@ -191,7 +188,6 @@ export function UserManagement() {
 
   const paginatedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Render skeleton loader when loading
   if (isLoading) {
     return (
       <Card>
@@ -345,7 +341,6 @@ export function UserManagement() {
                 </Table>
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <Pagination className="mt-4">
                   <PaginationContent>
@@ -382,7 +377,6 @@ export function UserManagement() {
           )}
         </div>
 
-        {/* Edit Role Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -415,7 +409,6 @@ export function UserManagement() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete User Dialog */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>

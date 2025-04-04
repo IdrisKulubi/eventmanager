@@ -17,7 +17,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { categoryId, quantity, eventId } = body;
 
-    // Validate input
     if (!categoryId || !quantity || !eventId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -25,7 +24,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get ticket category
     const category = await db.query.ticketCategories.findFirst({
       where: eq(ticketCategories.id, categoryId),
     });
@@ -37,7 +35,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate quantity
     if (category.maxPerOrder !== null && quantity > category.maxPerOrder) {
       return NextResponse.json(
         { error: `Maximum ${category.maxPerOrder} tickets per order` },
@@ -45,10 +42,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create order record first
-    const orderId = Date.now().toString(); // Replace with actual order creation
+    const orderId = Date.now().toString(); 
 
-    // Check availability
     const availableTickets = await db
       .select()
       .from(tickets)
@@ -65,7 +60,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update ticket status
     const ticketIds = availableTickets.map((ticket: { id: number }) => ticket.id);
     await db
       .update(tickets)

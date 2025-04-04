@@ -12,7 +12,6 @@ export function AnimatedBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -20,7 +19,6 @@ export function AnimatedBackground() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    // Particle class
     class Particle {
       x: number;
       y: number;
@@ -42,7 +40,6 @@ export function AnimatedBackground() {
         this.x += this.speedX;
         this.y += this.speedY;
 
-        // Wrap around screen
         if (canvas) {
           if (this.x < 0) this.x = canvas.width;
           if (this.x > canvas.width) this.x = 0;
@@ -60,13 +57,12 @@ export function AnimatedBackground() {
       }
     }
 
-    // Create particles
     const particles: Particle[] = [];
     for (let i = 0; i < 100; i++) {
       particles.push(new Particle());
     }
 
-    // Animation loop
+     
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -75,7 +71,6 @@ export function AnimatedBackground() {
         particle.draw();
       });
 
-      // Draw connections
       particles.forEach((particle, i) => {
         particles.slice(i + 1).forEach(otherParticle => {
           const dx = particle.x - otherParticle.x;

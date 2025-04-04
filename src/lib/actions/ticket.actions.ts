@@ -9,7 +9,6 @@ import db from '@/db/drizzle';
 import { generateTicketQR, generateTicketBarcode, TicketQRData } from '../utils/ticket-utils';
 import { nanoid } from 'nanoid';
 
-// Define User type with role property
 interface User {
   id: string;
   name?: string | null;
@@ -18,7 +17,6 @@ interface User {
   role?: 'admin' | 'manager' | 'user' | 'security';
 }
 
-// This interface is used in other modules, so we keep it but export it to avoid unused error
 export interface PurchaseTicketParams {
   eventId: number;
   ticketCategoryId: number;
@@ -39,26 +37,20 @@ interface OrderCreationParams {
   total: number;
 }
 
-// Define valid ticket status types from the enum
 type TicketStatus = typeof ticketStatusEnum.enumValues[number];
 
-/**
- * Check authorization for ticket management
- */
+
 async function checkTicketManagementPermission() {
   const session = await auth();
   if (!session) {
     return false;
   }
 
-  // Only admin, manager and security roles can manage tickets
   const user = session.user as User;
   return user.role === 'admin' || user.role === 'manager' || user.role === 'security';
 }
 
-/**
- * Get all ticket categories with related data
- */
+
 export async function getAllTicketCategories() {
   try {
     const result = await db.select({
@@ -76,9 +68,7 @@ export async function getAllTicketCategories() {
   }
 }
 
-/**
- * Get a single ticket by ID
- */
+
 export async function getTicketById(id: number) {
   try {
     const ticket = await db.select().from(tickets)
@@ -96,9 +86,6 @@ export async function getTicketById(id: number) {
   }
 }
 
-/**
- * Get tickets for an event (admin/manager)
- */
 export async function getEventTickets({
   eventId,
   page = 1,
@@ -118,7 +105,6 @@ export async function getEventTickets({
   try {
     const offset = (page - 1) * limit;
     
-    // Build queries based on whether we have a status filter
     let resultsPromise;
     if (status) {
       resultsPromise = db.select({
@@ -169,7 +155,6 @@ export async function getEventTickets({
         .offset(offset);
     }
     
-    // Get count with the same filter logic
     let countPromise;
     if (status) {
       countPromise = db
@@ -186,7 +171,6 @@ export async function getEventTickets({
         .where(eq(tickets.eventId, eventId));
     }
     
-    // Execute both promises in parallel
     const [results, countResult] = await Promise.all([resultsPromise, countPromise]);
     const totalCount = countResult[0]?.count || 0;
     
@@ -205,9 +189,7 @@ export async function getEventTickets({
   }
 }
 
-/**
- * Get tickets owned by a user
- */
+
 export async function getUserTickets(userId: string) {
   try {
     const userTickets = await db
@@ -245,9 +227,7 @@ export async function getUserTickets(userId: string) {
   }
 }
 
-/**
- * Check if a ticket is valid
- */
+
 export async function validateTicket(ticketId: number) {
   const hasPermission = await checkTicketManagementPermission();
   if (!hasPermission) {
@@ -255,14 +235,12 @@ export async function validateTicket(ticketId: number) {
   }
   
   try {
-    // Get the ticket
     const ticket = await getTicketById(ticketId);
     
     if (!ticket) {
       return { valid: false, message: 'Ticket not found' };
     }
     
-    // Check if ticket is already used
     if (ticket.isCheckedIn) {
       return {
         valid: false, 
@@ -271,12 +249,10 @@ export async function validateTicket(ticketId: number) {
       };
     }
     
-    // Check if ticket status is valid
     if (ticket.status !== 'sold') {
       return { valid: false, message: `Invalid ticket status: ${ticket.status}` };
     }
     
-    // Get the event to check dates
     const event = await db.select().from(events)
       .where(eq(events.id, ticket.eventId))
       .limit(1);
@@ -289,15 +265,11 @@ export async function validateTicket(ticketId: number) {
     const eventStart = new Date(event[0].startDate);
     const eventEnd = new Date(event[0].endDate);
     
-    // Check if event is in the past
     if (currentDate > eventEnd) {
       return { valid: false, message: 'Event has ended' };
     }
     
-    // Check if event has started yet (optional, comment out if pre-event check-in is allowed)
-    // if (currentDate < eventStart) {
-    //   return { valid: false, message: 'Event has not started yet' };
-    // }
+   
     
     return {
       valid: true, 
@@ -315,9 +287,6 @@ export async function validateTicket(ticketId: number) {
   }
 }
 
-/**
- * Mark a ticket as checked in
- */
 export async function checkInTicket(ticketId: number) {
   const hasPermission = await checkTicketManagementPermission();
   if (!hasPermission) {
@@ -325,14 +294,12 @@ export async function checkInTicket(ticketId: number) {
   }
   
   try {
-    // Validate the ticket first
     const validation = await validateTicket(ticketId);
     
     if (!validation.valid) {
       return { success: false, message: validation.message };
     }
     
-    // Update the ticket
     await db.update(tickets)
       .set({ 
         isCheckedIn: true, 
@@ -348,26 +315,21 @@ export async function checkInTicket(ticketId: number) {
   }
 }
 
-/**
- * Create an order with multiple tickets
- */
+
 export async function createOrder(orderData: OrderCreationParams) {
   try {
-    // Generate a unique order number
     const orderNumber = `ORD-${Date.now().toString(36)}-${nanoid(6).toUpperCase()}`;
     
-    // Create the order with proper types
     const [newOrder] = await db.insert(orders)
       .values({
         userId: orderData.userId,
         orderNumber: orderNumber,
-        total: orderData.total.toString(), // Convert to string for Drizzle numeric type
+        total: orderData.total.toString(), 
         status: 'pending',
         orderDate: new Date(),
       })
       .returning();
     
-    // Create tickets for each item in the order
     const ticketsToCreate = orderData.items.flatMap(item => {
       const tickets = [];
       
@@ -377,8 +339,8 @@ export async function createOrder(orderData: OrderCreationParams) {
           ticketCategoryId: item.ticketCategoryId,
           seatId: item.seatId,
           orderId: newOrder.id,
-          status: 'reserved' as TicketStatus, // Use type assertion
-          price: item.price.toString(), // Convert to string for Drizzle numeric type
+          status: 'reserved' as TicketStatus, 
+          price: item.price.toString(), 
           purchaseDate: new Date(),
         });
       }
@@ -386,7 +348,6 @@ export async function createOrder(orderData: OrderCreationParams) {
       return tickets;
     });
     
-    // Insert all tickets (handle one at a time if array insert is problematic)
     const createdTickets = [];
     for (const ticketData of ticketsToCreate) {
       const [ticket] = await db.insert(tickets)
@@ -408,12 +369,9 @@ export async function createOrder(orderData: OrderCreationParams) {
   }
 }
 
-/**
- * Update tickets after successful payment
- */
+
 export async function finalizeTicketsAfterPayment(orderId: number) {
   try {
-    // Get all tickets for this order
     const orderTickets = await db.select().from(tickets)
       .where(eq(tickets.orderId, orderId));
     
@@ -421,9 +379,7 @@ export async function finalizeTicketsAfterPayment(orderId: number) {
       throw new Error('No tickets found for this order');
     }
     
-    // Update each ticket with QR code and barcode
     const ticketUpdates = await Promise.all(orderTickets.map(async (ticket) => {
-      // Generate QR code data
       const qrData: TicketQRData = {
         ticketId: ticket.id,
         eventId: ticket.eventId,
@@ -436,7 +392,6 @@ export async function finalizeTicketsAfterPayment(orderId: number) {
       const qrCode = generateTicketQR(qrData);
       const barcode = generateTicketBarcode();
       
-      // Update ticket with codes and set status to sold
       return db.update(tickets)
         .set({
           qrCode,
@@ -447,7 +402,6 @@ export async function finalizeTicketsAfterPayment(orderId: number) {
         .returning();
     }));
     
-    // Update order status
     await db.update(orders)
       .set({ status: 'completed' })
       .where(eq(orders.id, orderId));
@@ -464,12 +418,9 @@ export async function finalizeTicketsAfterPayment(orderId: number) {
   }
 }
 
-/**
- * Get available tickets for an event
- */
+
 export async function getAvailableTickets(eventId: number) {
   try {
-    // Using a different approach with a LEFT JOIN and explicit GROUP BY
     const resultsPromise = db
       .select({
         category: ticketCategories,
@@ -477,7 +428,6 @@ export async function getAvailableTickets(eventId: number) {
     .from(ticketCategories)
       .where(eq(ticketCategories.eventId, eventId));
     
-    // Count tickets separately
     const countPromise = db
       .select({
         categoryId: tickets.ticketCategoryId,
@@ -492,16 +442,13 @@ export async function getAvailableTickets(eventId: number) {
       )
       .groupBy(tickets.ticketCategoryId);
       
-    // Execute both queries in parallel
     const [categories, counts] = await Promise.all([resultsPromise, countPromise]);
     
-    // Build a map of category IDs to counts
     const countMap = new Map();
     counts.forEach(item => {
       countMap.set(item.categoryId, item.count);
     });
     
-    // Add available count to each category
     const now = new Date();
     
     return categories.map(item => {
@@ -509,7 +456,6 @@ export async function getAvailableTickets(eventId: number) {
       const sold = Number(countMap.get(item.category.id) || 0);
       const available = Math.max(0, total - sold);
       
-      // Check if available for sale based on availability dates
       const availableFrom = item.category.availableFrom ? new Date(item.category.availableFrom) : null;
       const availableTo = item.category.availableTo ? new Date(item.category.availableTo) : null;
       
@@ -532,9 +478,7 @@ export async function getAvailableTickets(eventId: number) {
   }
 }
 
-/**
- * Update a ticket category
- */
+
 export async function updateTicketCategory({
   id,
   name,
@@ -558,7 +502,6 @@ export async function updateTicketCategory({
   }
 
   try {
-    // Get the current category to get the eventId
     const currentCategory = await db.select()
       .from(ticketCategories)
       .where(eq(ticketCategories.id, id))
@@ -570,12 +513,11 @@ export async function updateTicketCategory({
     
     const eventId = currentCategory[0].eventId;
     
-    // Update the ticket category
     await db.update(ticketCategories)
       .set({
         name,
         description,
-        price: price.toString(), // Convert price to string to match DB schema's expected type
+        price: price.toString(),
         quantity,
         isVIP: isVIP || false,
         isEarlyBird: isEarlyBird || false,
@@ -583,7 +525,6 @@ export async function updateTicketCategory({
       })
       .where(eq(ticketCategories.id, id));
     
-    // Revalidate paths
     revalidatePath(`/dashboard/events/${eventId}`);
     revalidatePath(`/dashboard/events/${eventId}/tickets`);
     
@@ -594,9 +535,6 @@ export async function updateTicketCategory({
   }
 }
 
-/**
- * Get ticket categories for a specific event
- */
 export async function getTicketCategoriesByEventId(eventId: number) {
   try {
     const categories = await db.select()
@@ -611,9 +549,7 @@ export async function getTicketCategoriesByEventId(eventId: number) {
   }
 }
 
-/**
- * Delete a ticket category
- */
+
 export async function deleteTicketCategory(id: number) {
   const hasPermission = await checkTicketManagementPermission();
   if (!hasPermission) {
@@ -621,7 +557,6 @@ export async function deleteTicketCategory(id: number) {
   }
 
   try {
-    // Get the current category to get the eventId for revalidation
     const currentCategory = await db.select()
       .from(ticketCategories)
       .where(eq(ticketCategories.id, id))
@@ -633,7 +568,6 @@ export async function deleteTicketCategory(id: number) {
     
     const eventId = currentCategory[0].eventId;
 
-    // Check if there are any tickets associated with this category
     const associatedTickets = await db.select()
       .from(tickets)
       .where(eq(tickets.ticketCategoryId, id))
@@ -643,11 +577,9 @@ export async function deleteTicketCategory(id: number) {
       throw new Error('Cannot delete category with associated tickets');
     }
     
-    // Delete the ticket category
     await db.delete(ticketCategories)
       .where(eq(ticketCategories.id, id));
     
-    // Revalidate paths
     revalidatePath(`/dashboard/events/${eventId}`);
     revalidatePath(`/dashboard/events/${eventId}/tickets`);
     
@@ -658,9 +590,7 @@ export async function deleteTicketCategory(id: number) {
   }
 }
 
-/**
- * Create a new ticket category for an event
- */
+
 export async function createTicketCategory({
   eventId,
   name,
@@ -688,13 +618,12 @@ export async function createTicketCategory({
   }
 
   try {
-    // Create the ticket category
     const [newCategory] = await db.insert(ticketCategories)
       .values({
         eventId,
         name,
         description,
-        price: price.toString(), // Convert price to string to match DB schema
+        price: price.toString(), 
         quantity,
         isVIP: isVIP || false,
         isEarlyBird: isEarlyBird || false,
@@ -705,7 +634,6 @@ export async function createTicketCategory({
       })
       .returning();
     
-    // Revalidate paths
     revalidatePath(`/dashboard/events/${eventId}`);
     revalidatePath(`/dashboard/events/${eventId}/tickets`);
     
@@ -716,9 +644,7 @@ export async function createTicketCategory({
   }
 }
 
-/**
- * Get a single ticket category by ID
- */
+
 export async function getTicketCategoryById(id: number) {
   try {
     const category = await db.select()

@@ -44,7 +44,6 @@ import {
   Globe 
 } from 'lucide-react';
 
-// Schema for email settings
 const emailSettingsSchema = z.object({
   smtpHost: z.string().min(1, 'SMTP Host is required'),
   smtpPort: z.coerce.number().int().positive(),
@@ -55,7 +54,6 @@ const emailSettingsSchema = z.object({
   useSSL: z.boolean().default(true),
 });
 
-// Schema for general settings
 const generalSettingsSchema = z.object({
   siteName: z.string().min(1, 'Site Name is required'),
   siteDescription: z.string().optional(),
@@ -68,7 +66,6 @@ const generalSettingsSchema = z.object({
   maintenanceMessage: z.string().optional(),
 });
 
-// Schema for security settings
 const securitySettingsSchema = z.object({
   maxLoginAttempts: z.coerce.number().int().min(3).max(10),
   passwordMinLength: z.coerce.number().int().min(8).max(30),
@@ -90,7 +87,6 @@ export function SystemSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentTab, setCurrentTab] = useState('general');
   
-  // Initialize forms with default values
   const emailForm = useForm<EmailSettingsValues>({
     resolver: zodResolver(emailSettingsSchema),
     defaultValues: {
@@ -134,7 +130,6 @@ export function SystemSettings() {
     },
   });
 
-  // Fetch current system settings
   useEffect(() => {
     const fetchSettings = async () => {
       setIsLoading(true);
@@ -143,21 +138,18 @@ export function SystemSettings() {
         if (result.error) {
           toast.error(result.error);
         } else if (result.settings) {
-          // Update email settings form
           if (result.settings.email) {
             emailForm.reset({
               ...result.settings.email,
             });
           }
           
-          // Update general settings form
           if (result.settings.general) {
             generalForm.reset({
               ...result.settings.general,
             });
           }
           
-          // Update security settings form
           if (result.settings.security) {
             securityForm.reset({
               ...result.settings.security,
@@ -187,7 +179,6 @@ export function SystemSettings() {
     handleSubmit('security', values);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = async (type: string, values: any    ) => {
     setIsSaving(true);
     try {
@@ -249,7 +240,6 @@ export function SystemSettings() {
             </TabsTrigger>
           </TabsList>
           
-          {/* General Settings Tab */}
           <TabsContent value="general">
             <div className="space-y-6 py-4">
               <div className="flex items-start space-x-4">
@@ -267,7 +257,6 @@ export function SystemSettings() {
               <Form {...generalForm}>
                 <form onSubmit={generalForm.handleSubmit(onGeneralSubmit)} className="space-y-6">
                   <div className="grid gap-6 md:grid-cols-2">
-                    {/* Site Name */}
                     <FormField
                       control={generalForm.control}
                       name="siteName"
@@ -282,7 +271,6 @@ export function SystemSettings() {
                       )}
                     />
                     
-                    {/* Contact Email */}
                     <FormField
                       control={generalForm.control}
                       name="contactEmail"
@@ -298,7 +286,6 @@ export function SystemSettings() {
                     />
                   </div>
                   
-                  {/* Site Description */}
                   <FormField
                     control={generalForm.control}
                     name="siteDescription"
@@ -314,7 +301,6 @@ export function SystemSettings() {
                   />
                   
                   <div className="grid gap-6 md:grid-cols-3">
-                    {/* Support Phone */}
                     <FormField
                       control={generalForm.control}
                       name="supportPhone"
@@ -329,7 +315,6 @@ export function SystemSettings() {
                       )}
                     />
                     
-                    {/* Timezone */}
                     <FormField
                       control={generalForm.control}
                       name="timezone"
@@ -360,7 +345,6 @@ export function SystemSettings() {
                     />
                   </div>
                   
-                  {/* Maintenance Mode */}
                   <FormField
                     control={generalForm.control}
                     name="maintenanceMode"

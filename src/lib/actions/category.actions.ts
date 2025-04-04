@@ -8,7 +8,6 @@ import db from '@/db/drizzle';
 import { CategoryFormData } from '../validators';
 
 
-// Define User type with role property
 interface User {
   id: string;
   name?: string | null;
@@ -17,14 +16,12 @@ interface User {
   role?: 'admin' | 'manager' | 'user';
 }
 
-// Authorization check for category management
 async function checkCategoryManagementPermission() {
   const session = await auth();
   if (!session) {
     return false;
   }
 
-  // Only admin and manager roles can manage categories
   const user = session.user as User;
   return user.role === 'admin' || user.role === 'manager';
 }
@@ -45,14 +42,12 @@ export async function getCategories({
   try {
     const offset = (page - 1) * limit;
     
-    // Get total count for pagination
     const totalCategories = await db.select({
       value: count()
     }).from(eventCategories);
     
     const total = totalCategories[0]?.value || 0;
     
-    // Apply search, sorting and pagination in a single query
     const paginatedQuery = db.select().from(eventCategories)
       .where(search ? like(eventCategories.name, `%${search}%`) : undefined)
       .orderBy(
@@ -63,10 +58,8 @@ export async function getCategories({
       .limit(limit)
       .offset(offset);
     
-    // Execute query
     const categoriesList = await paginatedQuery;
     
-    // Get event counts for each category
     const categoryIds = categoriesList.map(cat => cat.id);
     const eventCounts = categoryIds.length > 0 
       ? await db.select({
@@ -78,10 +71,8 @@ export async function getCategories({
         .groupBy(eventToCategory.categoryId)
       : [];
     
-    // Create a map of category IDs to counts
     const countMap = new Map(eventCounts.map(ec => [ec.categoryId, ec.count]));
     
-    // Add event count to each category
     const categoriesWithCounts = categoriesList.map(cat => ({
       ...cat,
       eventCount: countMap.get(cat.id) || 0
@@ -126,7 +117,6 @@ export async function createCategory(formData: CategoryFormData) {
   }
   
   try {
-    // Check if category with the same name already exists
     const existingCategory = await db.select()
       .from(eventCategories)
       .where(eq(eventCategories.name, formData.name))
@@ -155,7 +145,6 @@ export async function updateCategory(id: number, formData: CategoryFormData) {
   }
   
   try {
-    // Check if another category with the same name already exists
     const existingCategory = await db.select()
       .from(eventCategories)
       .where(
@@ -187,7 +176,6 @@ export async function deleteCategory(id: number) {
   }
   
   try {
-    // Check if the category has any associated events
     const categoryEvents = await db.select()
       .from(eventToCategory)
       .where(eq(eventToCategory.categoryId, id))
@@ -197,7 +185,6 @@ export async function deleteCategory(id: number) {
       throw new Error('Cannot delete category with associated events');
     }
     
-    // Delete the category
     await db.delete(eventCategories).where(eq(eventCategories.id, id));
     
     revalidatePath('/dashboard/categories');

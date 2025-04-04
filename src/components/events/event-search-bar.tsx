@@ -24,7 +24,6 @@ export function EventSearchBar({ initialQuery = '' }) {
         params.delete('query');
       }
       
-      // Reset to page 1 when search changes
       params.delete('page');
       
       router.push(`/events?${params.toString()}`);

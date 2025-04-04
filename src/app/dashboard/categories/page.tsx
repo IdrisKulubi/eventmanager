@@ -26,7 +26,6 @@ export default async function CategoriesPage({
   const params = await searchParams;
   const session = await auth();
   
-  // Check if user is authenticated and has required role
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
     redirect('/sign-in');
   }

@@ -10,7 +10,6 @@ export const metadata = {
   description: "Edit an existing event",
 };
 
-// Force dynamic to prevent caching issues
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -42,7 +41,6 @@ export default async function EditEventPage({
     return notFound();
   }
 
-  // Transform the event data to match the expected format
   const event = {
     id: eventData.id,
     title: eventData.title,

@@ -63,7 +63,6 @@ type FormData = {
   maxTickets?: number;
 };
 
-// Define types based on the schema
 type Venue = typeof venuesSchema.$inferSelect;
 
 interface EventFormProps {
@@ -85,7 +84,6 @@ interface EventFormProps {
   };
 }
 
-// Add type for upload response
 interface UploadResponse {
   url: string;
   key: string;
@@ -98,7 +96,6 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUploadComplete, setImageUploadComplete] = useState(false);
   
-  // Parse initial data for the form
   const defaultValues = initialData
     ? {
         ...initialData,
@@ -133,10 +130,8 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
     defaultValues,
   });
   
-  // Watch the bannerImage field for preview
   const bannerImageValue = form.watch("bannerImage");
   
-  // Update image upload status based on bannerImage value
   useEffect(() => {
     console.log("Banner image changed:", bannerImageValue);
     if (bannerImageValue) {
@@ -144,10 +139,8 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
     }
   }, [bannerImageValue]);
   
-  // Track if the form has been modified
   const isDirty = form.formState.isDirty;
 
-  // Custom handler for image upload completion
   const handleImageUpload = (res: UploadResponse[]) => {
     console.log("Image upload complete, received URL:", res[0].url);
     form.setValue("bannerImage", res[0].url);
@@ -162,7 +155,6 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
       setIsSubmitting(true);
       
       if (initialData) {
-        // Ensure bannerImage is explicitly included
         const updateData = {
           ...data,
           venueId: Number(data.venueId),
@@ -174,12 +166,10 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
         
         console.log("Update data being sent:", JSON.stringify(updateData, null, 2));
         
-        // Update existing event
         const result = await updateEvent(initialData.id, updateData);
         
         if (result && result.success) {
           toast.success("Event updated successfully");
-          // Use setTimeout to ensure the toast appears before navigation
           setTimeout(() => {
             router.push("/dashboard/events");
             router.refresh();
@@ -188,24 +178,21 @@ export function EventForm({ venues, categories, initialData }: EventFormProps) {
           throw new Error("Failed to update event");
         }
       } else {
-        // Ensure bannerImage is explicitly included
         const createData = {
           ...data,
           venueId: Number(data.venueId),
           startDate: new Date(data.startDate),
           endDate: new Date(data.endDate),
           categoryIds: data.categoryIds || [],
-          bannerImage: data.bannerImage || undefined // Use undefined instead of null
+          bannerImage: data.bannerImage || undefined 
         };
         
         console.log("Create data being sent:", JSON.stringify(createData, null, 2));
         
-        // Create new event
         const result = await createEvent(createData);
         
         if (result && result.success) {
           toast.success("Event created successfully");
-          // Use setTimeout to ensure the toast appears before navigation
           setTimeout(() => {
             router.push("/dashboard/events");
             router.refresh();

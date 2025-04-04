@@ -22,7 +22,6 @@ export function EventFilters({
   priceRange,
   onPriceRangeChange,
 }: EventFiltersProps) {
-  // Mock categories data - replace with real data from your API
   const categories = [
     { id: 'rock', name: 'Rock', count: 18 },
     { id: 'pop', name: 'Pop', count: 24 },

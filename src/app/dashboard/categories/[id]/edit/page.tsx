@@ -17,7 +17,6 @@ export default async function EditCategoryPage({
 }) {
   const session = await auth();
   
-  // Check if user is authenticated and has required role
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
     redirect('/sign-in');
   }
@@ -29,7 +28,6 @@ export default async function EditCategoryPage({
     redirect('/dashboard/categories');
   }
   
-  // Fetch category
   const category = await getCategoryById(categoryId);
   
   if (!category) {

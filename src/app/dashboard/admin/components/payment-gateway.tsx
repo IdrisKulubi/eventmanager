@@ -46,7 +46,6 @@ import {
   CreditCard 
 } from 'lucide-react';
 
-// Define the validation schema for M-PESA configuration
 const mpesaFormSchema = z.object({
   isEnabled: z.boolean().default(false),
   environment: z.enum(['sandbox', 'live']).default('sandbox'),
@@ -60,7 +59,6 @@ const mpesaFormSchema = z.object({
   maxStatusCheckAttempts: z.coerce.number().min(1).max(20).default(10),
 });
 
-// Define the validation schema for general payment settings
 const generalSettingsSchema = z.object({
   allowPartialPayments: z.boolean().default(false),
   autoConfirmOrders: z.boolean().default(true),
@@ -79,7 +77,6 @@ export function PaymentGateway() {
   const [showSecrets, setShowSecrets] = useState(false);
   const [currentTab, setCurrentTab] = useState('mpesa');
 
-  // Initialize forms with default values
   const mpesaForm = useForm<MpesaFormValues>({
     resolver: zodResolver(mpesaFormSchema),
     defaultValues: {
@@ -108,7 +105,6 @@ export function PaymentGateway() {
     },
   });
 
-  // Fetch current payment configurations
   useEffect(() => {
     const fetchPaymentConfig = async () => {
       setIsLoading(true);
@@ -117,7 +113,6 @@ export function PaymentGateway() {
         if (result.error) {
           toast.error(result.error);
         } else if (result.config) {
-          // Update M-PESA form with fetched values
           if (result.config.mpesa) {
             mpesaForm.reset({
               isEnabled: result.config.mpesa.isEnabled,
@@ -133,7 +128,6 @@ export function PaymentGateway() {
             });
           }
 
-          // Update general settings form with fetched values
           if (result.config.general) {
             generalSettingsForm.reset({
               allowPartialPayments: result.config.general.allowPartialPayments,
@@ -156,7 +150,6 @@ export function PaymentGateway() {
     fetchPaymentConfig();
   }, [mpesaForm, generalSettingsForm]);
 
-  // Handle form submission for M-PESA settings
   const onMpesaSubmit = async (values: MpesaFormValues) => {
     setIsSaving(true);
     try {
@@ -175,7 +168,6 @@ export function PaymentGateway() {
     }
   };
 
-  // Handle form submission for general payment settings
   const onGeneralSettingsSubmit = async (values: GeneralSettingsValues) => {
     setIsSaving(true);
     try {
@@ -194,7 +186,6 @@ export function PaymentGateway() {
     }
   };
 
-  // Render loading state
   if (isLoading) {
     return (
       <Card>
@@ -231,7 +222,6 @@ export function PaymentGateway() {
             </TabsTrigger>
           </TabsList>
           
-          {/* M-PESA Integration Tab */}
           <TabsContent value="mpesa">
             <div className="space-y-6 py-4">
               <div className="flex items-start space-x-4">
@@ -284,7 +274,6 @@ export function PaymentGateway() {
                     )}
                   />
                   
-                  {/* Environment selection */}
                   <FormField
                     control={mpesaForm.control}
                     name="environment"
@@ -321,7 +310,6 @@ export function PaymentGateway() {
                   />
                   
                   <div className="grid gap-6 md:grid-cols-2">
-                    {/* Business Shortcode */}
                     <FormField
                       control={mpesaForm.control}
                       name="shortcode"
@@ -339,7 +327,7 @@ export function PaymentGateway() {
                       )}
                     />
                     
-                    {/* Timeout Seconds */}
+                    {/* Timeut Seconds */}
                     <FormField
                       control={mpesaForm.control}
                       name="timeoutSeconds"
@@ -652,7 +640,6 @@ export function PaymentGateway() {
                     />
                   </div>
                   
-                  {/* Refund Policy */}
                   <FormField
                     control={generalSettingsForm.control}
                     name="refundPolicy"

@@ -3,7 +3,6 @@
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      // Basic Three.js elements
       mesh: any;
       group: any;
       ambientLight: any;

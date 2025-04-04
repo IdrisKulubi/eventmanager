@@ -78,7 +78,6 @@ export const DataTable = forwardRef(function DataTable<
     setDeleteDialogOpen(true);
   };
   
-  // Make the function accessible to parent components
   useImperativeHandle(ref, () => ({
     openDeleteDialog
   }));

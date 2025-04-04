@@ -17,7 +17,6 @@ export default async function EventTicketsPage({
 }) {
   const resolvedParams = await params;
   
-  // Check authorization
   const session = await auth();
   
   if (!session || !(session.user.role === 'admin' || session.user.role === 'manager')) {
@@ -26,14 +25,12 @@ export default async function EventTicketsPage({
   
   const eventId = parseInt(resolvedParams.id);
   
-  // Get event details
   const event = await getEventById(eventId);
   
   if (!event) {
     redirect('/dashboard/events');
   }
   
-  // Get ticket categories
   const ticketCategories = await getTicketCategoriesByEventId(eventId);
   
   return (

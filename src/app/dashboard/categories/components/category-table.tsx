@@ -28,7 +28,6 @@ import { deleteCategory } from "@/lib/actions/category.actions";
 import { eventCategories } from "@/db/schema";
 import { formatDate } from "@/lib/utils";
 
-// Define the type based on the schema
 type Category = typeof eventCategories.$inferSelect;
 
 interface CategoryTableProps {

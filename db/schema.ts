@@ -15,7 +15,7 @@ export const users = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  password: text("password"), // Password field for email/password auth
+  password: text("password"), 
   role: userRoleEnum("role").default("user"),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
@@ -212,14 +212,12 @@ export const payments = pgTable("payment", {
   method: paymentMethodEnum("method").default("mpesa"),
   paymentDate: timestamp("payment_date", { mode: "date" }),
   
-  // M-PESA specific fields
   mpesaReceiptNumber: text("mpesa_receipt_number").unique(),
   mpesaPhoneNumber: text("mpesa_phone_number"),
   mpesaTransactionDate: text("mpesa_transaction_date"),
   checkoutRequestId: text("checkout_request_id"),
   merchantRequestId: text("merchant_request_id"),
   
-  // For handling callbacks and status checks
   callbackMetadata: json("callback_metadata"),
   resultCode: integer("result_code"),
   resultDescription: text("result_description"),
@@ -244,7 +242,6 @@ export const artists = pgTable("artist", {
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull(),
 });
 
-// Event-Artist relationship (many-to-many)
 export const eventArtists = pgTable("event_artist", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }).notNull(),
@@ -259,7 +256,6 @@ export const eventArtists = pgTable("event_artist", {
   };
 });
 
-// Analytics - Event attendance
 export const eventAttendance = pgTable("event_attendance", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }).notNull(),
@@ -278,7 +274,6 @@ export const eventCategories = pgTable("event_category", {
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
 
-// Event to category relationship (many-to-many)
 export const eventToCategory = pgTable("event_to_category", {
   eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }).notNull(),
   categoryId: integer("category_id").references(() => eventCategories.id, { onDelete: "cascade" }).notNull(),
@@ -288,14 +283,13 @@ export const eventToCategory = pgTable("event_to_category", {
   };
 });
 
-// Notifications
 export const notifications = pgTable("notification", {
   id: serial("id").primaryKey(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   isRead: boolean("is_read").default(false),
-  type: text("type").notNull(),  // "event_update", "ticket_purchased", "payment_confirmation", etc.
+  type: text("type").notNull(),  
   relatedEntityId: text("related_entity_id"), 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
 });
