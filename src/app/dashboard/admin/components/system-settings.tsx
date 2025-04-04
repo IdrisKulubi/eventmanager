@@ -179,6 +179,7 @@ export function SystemSettings() {
     handleSubmit('security', values);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSubmit = async (type: string, values: any    ) => {
     setIsSaving(true);
     try {

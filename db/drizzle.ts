@@ -7,7 +7,7 @@ const poolConfig = {
   min: Number(process.env.POSTGRES_POOL_MIN || 5),
   max: Number(process.env.POSTGRES_POOL_MAX || 20),
   idleTimeoutMillis: Number(process.env.POSTGRES_IDLE_TIMEOUT || 30000),
-  connectionTimeoutMillis: 5000, /
+  connectionTimeoutMillis: 5000, 
   maxUses: 10000, 
 };
 
