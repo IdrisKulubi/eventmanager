@@ -88,7 +88,7 @@ export default function Home() {
             <div className="bg-purple-900/20 p-6 rounded-lg backdrop-blur-sm">
               <h3 className="text-xl font-semibold text-purple-200 mb-4">DJ Showcase</h3>
               <p className="text-purple-300">
-                Dance to the beats of Strathmore&apos;s finest DJs in the main auditorium
+                Dance to the beats of Strathmore&apos;s finest DJs in the main auditorium  ,, go to /dashboard/events to see the all the management features
               </p>
             </div>
 
