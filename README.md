@@ -77,4 +77,4 @@ I am gonna write the setup process
 
 ## License
 
-[Coming soon - License information]
+It is under MIT licence
