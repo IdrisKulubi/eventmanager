@@ -67,6 +67,7 @@ The Event Management System provides end-to-end capabilities for concert and eve
 ## Getting Started
 
 [Coming soon - Installation and setup instructions]
+I am gonna write the setup process
 
 
 
